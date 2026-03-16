@@ -1,0 +1,44 @@
+network:
+  interface: WiFi
+  promiscuous: true
+  bpf_filter: ip
+flow:
+  timeout: 10.0
+  max_packets: 1000
+  max_flows: 100000
+api:
+  url: http://localhost:8000
+  predict_endpoint: /predict
+  timeout: 10.0
+  retry_count: 3
+alerts:
+  enabled: true
+  confidence_threshold: 0.8
+  log_only: true
+alerting:
+  email:
+    enabled: false
+    smtp_server: smtp.gmail.com
+    smtp_port: 587
+    use_tls: true
+    sender: nids-alerts@example.com
+    password: ${NIDS_EMAIL_PASSWORD}
+    recipients:
+    - security-team@example.com
+    min_confidence: 0.9
+    cooldown_minutes: 5
+    severity_threshold: medium
+  slack:
+    enabled: false
+    webhook_url: ${NIDS_SLACK_WEBHOOK}
+    channel: "#nids-alerts"
+    min_confidence: 0.8
+    cooldown_minutes: 2
+    severity_threshold: medium
+logging:
+  level: INFO
+  file: logs/nids/nids_engine.log
+performance:
+  packet_batch_size: 500
+  cleanup_interval: 5
+  stats_interval: 10

@@ -1,0 +1,142 @@
+# ==============================================================================
+# NIDS Docker Compose Configuration
+# ==============================================================================
+# Services:
+#   - nids-api:    FastAPI ML prediction service         (port 8000)
+#   - prometheus:  Metrics scraping & time-series store  (port 9090)
+#   - grafana:     Monitoring dashboards                 (port 3000)
+#
+# Usage:
+#   Start:   docker-compose up -d
+#   Stop:    docker-compose down
+#   Logs:    docker-compose logs -f nids-api
+#   Rebuild: docker-compose up -d --build
+#
+# URLs:
+#   API:        http://localhost:8000
+#   Prometheus: http://localhost:9090
+#   Grafana:    http://localhost:3000  (admin / nids-admin)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # NIDS API Service
+  # ==========================================================================
+  nids-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nids-api:latest
+    container_name: nids-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # API Configuration
+      - NIDS_LOG_LEVEL=INFO
+      - NIDS_WORKERS=1
+      # API Authentication (set these in production!)
+      - NIDS_API_KEY=${NIDS_API_KEY:-}
+      - NIDS_REQUIRE_AUTH=${NIDS_REQUIRE_AUTH:-false}
+    volumes:
+      # Persist logs outside container
+      - ./logs/api:/app/api/logs
+      # Mount models directory (allows model updates without rebuild)
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - nids-network
+    # Resource limits (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # ==========================================================================
+  # Prometheus - Metrics Collection & Storage
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nids-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    depends_on:
+      nids-api:
+        condition: service_healthy
+    networks:
+      - nids-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================================================
+  # Grafana - Monitoring Dashboards
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nids-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=nids-admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/nids-dashboard.json
+    volumes:
+      # Provisioning: auto-configure datasource and dashboard loader
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      # Dashboard JSON files
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # Persist Grafana data (user preferences, annotations, etc.)
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - nids-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  nids-network:
+    driver: bridge
+    name: nids-network
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

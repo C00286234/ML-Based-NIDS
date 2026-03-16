@@ -1,0 +1,42 @@
+NIDS Randomised Evaluation Report
+============================================================
+Date:           2026-03-10 17:42:10
+Runs:           3
+Samples/class:  10
+
+Overall Accuracy: 91.9% +/- 1.2%
+95% CI:           [90.5%, 93.3%]
+
+Attack Type                           Mean Acc      Std    N/run
+-----------------------------------------------------------------
+BENIGN                                  100.0%     0.0%     10
+Botnet                                  100.0%     0.0%     10
+DDoS                                    100.0%     0.0%     10
+DoS GoldenEye                           100.0%     0.0%     10
+DoS Hulk                                100.0%     0.0%     10
+DoS Slowhttptest                        100.0%     0.0%     10
+DoS Slowloris                           100.0%     0.0%     10
+FTP-Patator                             100.0%     0.0%     10
+Heartbleed                               90.0%     0.0%     10
+Infiltration                             80.0%    10.0%     10
+Infiltration - Portscan                  86.7%    15.3%     10
+Portscan                                 96.7%     5.8%     10
+SSH-Patator                             100.0%     0.0%     10
+Web Attack - Brute Force                 76.7%    20.8%     10
+Web Attack - SQL Injection               86.7%     5.8%     10
+Web Attack - XSS                         53.3%    15.3%     10
+
+Top Confusion Patterns:
+  Web Attack - XSS -> Web Attack - Brute Force       (13 times)
+  Web Attack - Brute Force -> Web Attack - XSS               (7 times)
+  Infiltration -> BENIGN                         (6 times)
+  Infiltration - Portscan -> Portscan                       (4 times)
+  Web Attack - SQL Injection -> BENIGN                         (4 times)
+  Heartbleed -> BENIGN                         (3 times)
+  Portscan -> Infiltration - Portscan        (1 times)
+  Web Attack - XSS -> BENIGN                         (1 times)
+
+Per-run overall accuracy:
+  Run 1: 90.6%
+  Run 2: 93.1%
+  Run 3: 91.9%

@@ -1,0 +1,3 @@
+Method,Type,Speed,Scope,Best_For
+SHAP,Model-specific (Tree),Fast (TreeExplainer),Global + Local,Overall understanding
+LIME,Model-agnostic,Slower (perturbations),Local only,Individual predictions

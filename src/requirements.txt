@@ -1,0 +1,16 @@
+# NIDS Real-time Processing Dependencies
+# =======================================
+
+# Packet capture
+scapy>=2.5.0
+
+# Configuration
+PyYAML>=6.0
+
+# HTTP requests (for API calls)
+requests>=2.31.0
+
+# Note: The following are also needed but should already be installed
+# from the API requirements:
+# - numpy
+# - pandas

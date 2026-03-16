@@ -1,0 +1,49 @@
+run,label,correct,total,accuracy
+1,BENIGN,10,10,100.0
+2,BENIGN,10,10,100.0
+3,BENIGN,10,10,100.0
+1,Botnet,10,10,100.0
+2,Botnet,10,10,100.0
+3,Botnet,10,10,100.0
+1,DDoS,10,10,100.0
+2,DDoS,10,10,100.0
+3,DDoS,10,10,100.0
+1,DoS GoldenEye,10,10,100.0
+2,DoS GoldenEye,10,10,100.0
+3,DoS GoldenEye,10,10,100.0
+1,DoS Hulk,10,10,100.0
+2,DoS Hulk,10,10,100.0
+3,DoS Hulk,10,10,100.0
+1,DoS Slowhttptest,10,10,100.0
+2,DoS Slowhttptest,10,10,100.0
+3,DoS Slowhttptest,10,10,100.0
+1,DoS Slowloris,10,10,100.0
+2,DoS Slowloris,10,10,100.0
+3,DoS Slowloris,10,10,100.0
+1,FTP-Patator,10,10,100.0
+2,FTP-Patator,10,10,100.0
+3,FTP-Patator,10,10,100.0
+1,Heartbleed,9,10,90.0
+2,Heartbleed,9,10,90.0
+3,Heartbleed,9,10,90.0
+1,Infiltration,7,10,70.0
+2,Infiltration,8,10,80.0
+3,Infiltration,9,10,90.0
+1,Infiltration - Portscan,7,10,70.0
+2,Infiltration - Portscan,9,10,90.0
+3,Infiltration - Portscan,10,10,100.0
+1,Portscan,10,10,100.0
+2,Portscan,9,10,90.0
+3,Portscan,10,10,100.0
+1,SSH-Patator,10,10,100.0
+2,SSH-Patator,10,10,100.0
+3,SSH-Patator,10,10,100.0
+1,Web Attack - Brute Force,7,10,70.0
+2,Web Attack - Brute Force,10,10,100.0
+3,Web Attack - Brute Force,6,10,60.0
+1,Web Attack - SQL Injection,8,10,80.0
+2,Web Attack - SQL Injection,9,10,90.0
+3,Web Attack - SQL Injection,9,10,90.0
+1,Web Attack - XSS,7,10,70.0
+2,Web Attack - XSS,5,10,50.0
+3,Web Attack - XSS,4,10,40.0

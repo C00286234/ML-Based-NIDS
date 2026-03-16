@@ -1,0 +1,12 @@
+# NIDS Dashboard Dependencies
+# ============================
+
+# Web Framework
+Flask>=3.0.0
+
+# HTTP Client
+requests>=2.31.0
+
+# Optional: For production deployment
+# gunicorn>=21.0.0
+# gevent>=23.0.0

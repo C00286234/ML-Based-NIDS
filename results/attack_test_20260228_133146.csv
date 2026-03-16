@@ -1,0 +1,81 @@
+true_label,predicted_label,confidence,is_attack,correct,latency_ms
+BENIGN,BENIGN,0.7412,False,True,2195.4
+BENIGN,BENIGN,0.8439,False,True,2152.5
+BENIGN,BENIGN,0.8669,False,True,2139.1
+BENIGN,BENIGN,0.8419,False,True,2142.9
+BENIGN,BENIGN,0.8456,False,True,2165.9
+Botnet,BENIGN,0.7301,False,False,2139.7
+Botnet,BENIGN,0.7812,False,False,2167.4
+Botnet,BENIGN,0.7326,False,False,2122.3
+Botnet,BENIGN,0.7326,False,False,2121.4
+Botnet,BENIGN,0.7301,False,False,2130.4
+DDoS,BENIGN,0.7846,False,False,2127.7
+DDoS,BENIGN,0.7845,False,False,2130.5
+DDoS,BENIGN,0.6718,False,False,2142.0
+DDoS,BENIGN,0.7522,False,False,2152.4
+DDoS,BENIGN,0.7871,False,False,2175.5
+DoS GoldenEye,BENIGN,0.8448,False,False,2158.1
+DoS GoldenEye,BENIGN,0.8336,False,False,2158.2
+DoS GoldenEye,BENIGN,0.8142,False,False,2180.4
+DoS GoldenEye,BENIGN,0.7751,False,False,2166.2
+DoS GoldenEye,BENIGN,0.8185,False,False,2149.9
+DoS Hulk,BENIGN,0.7887,False,False,2161.2
+DoS Hulk,BENIGN,0.7786,False,False,2118.5
+DoS Hulk,BENIGN,0.7741,False,False,2160.5
+DoS Hulk,BENIGN,0.8325,False,False,2171.3
+DoS Hulk,BENIGN,0.7825,False,False,2145.2
+DoS Slowhttptest,BENIGN,0.8152,False,False,2169.7
+DoS Slowhttptest,BENIGN,0.6505,False,False,2168.0
+DoS Slowhttptest,BENIGN,0.6505,False,False,2181.4
+DoS Slowhttptest,BENIGN,0.6505,False,False,2167.8
+DoS Slowhttptest,BENIGN,0.6458,False,False,2142.5
+DoS Slowloris,BENIGN,0.5517,False,False,2173.1
+DoS Slowloris,BENIGN,0.614,False,False,2171.9
+DoS Slowloris,BENIGN,0.7051,False,False,2178.0
+DoS Slowloris,BENIGN,0.7051,False,False,2150.2
+DoS Slowloris,BENIGN,0.6856,False,False,2136.0
+FTP-Patator,BENIGN,0.8084,False,False,2103.9
+FTP-Patator,BENIGN,0.8066,False,False,2141.5
+FTP-Patator,BENIGN,0.8039,False,False,2177.3
+FTP-Patator,BENIGN,0.8066,False,False,2114.7
+FTP-Patator,BENIGN,0.8066,False,False,2129.3
+Heartbleed,BENIGN,0.7268,False,False,2152.4
+Heartbleed,BENIGN,0.7604,False,False,2169.7
+Heartbleed,BENIGN,0.7586,False,False,2167.2
+Heartbleed,BENIGN,0.7731,False,False,2135.7
+Heartbleed,BENIGN,0.7305,False,False,2138.3
+Infiltration,BENIGN,0.7508,False,False,2107.5
+Infiltration,BENIGN,0.6879,False,False,2151.2
+Infiltration,BENIGN,0.7353,False,False,2158.0
+Infiltration,BENIGN,0.7502,False,False,2145.8
+Infiltration,BENIGN,0.8237,False,False,2141.2
+Infiltration - Portscan,BENIGN,0.7437,False,False,2096.4
+Infiltration - Portscan,BENIGN,0.7296,False,False,2153.2
+Infiltration - Portscan,BENIGN,0.6413,False,False,2141.2
+Infiltration - Portscan,BENIGN,0.6872,False,False,2201.9
+Infiltration - Portscan,BENIGN,0.7241,False,False,2148.6
+Portscan,BENIGN,0.7601,False,False,2127.5
+Portscan,BENIGN,0.7519,False,False,2161.3
+Portscan,BENIGN,0.7654,False,False,2152.3
+Portscan,BENIGN,0.7449,False,False,2145.4
+Portscan,BENIGN,0.767,False,False,2118.9
+SSH-Patator,BENIGN,0.8373,False,False,2158.5
+SSH-Patator,BENIGN,0.8425,False,False,2169.8
+SSH-Patator,BENIGN,0.8325,False,False,2155.1
+SSH-Patator,BENIGN,0.8248,False,False,2158.6
+SSH-Patator,BENIGN,0.8275,False,False,2147.8
+Web Attack - Brute Force,BENIGN,0.7428,False,False,2101.1
+Web Attack - Brute Force,BENIGN,0.7428,False,False,2156.4
+Web Attack - Brute Force,BENIGN,0.7422,False,False,2131.0
+Web Attack - Brute Force,BENIGN,0.7428,False,False,2173.5
+Web Attack - Brute Force,BENIGN,0.7403,False,False,2166.9
+Web Attack - SQL Injection,BENIGN,0.8242,False,False,2164.1
+Web Attack - SQL Injection,BENIGN,0.7759,False,False,2179.7
+Web Attack - SQL Injection,BENIGN,0.8278,False,False,2131.1
+Web Attack - SQL Injection,BENIGN,0.7701,False,False,2159.3
+Web Attack - SQL Injection,BENIGN,0.8685,False,False,2145.0
+Web Attack - XSS,BENIGN,0.7428,False,False,2156.1
+Web Attack - XSS,BENIGN,0.7428,False,False,2144.3
+Web Attack - XSS,BENIGN,0.7428,False,False,2116.2
+Web Attack - XSS,BENIGN,0.7428,False,False,2081.6
+Web Attack - XSS,BENIGN,0.8281,False,False,2150.6

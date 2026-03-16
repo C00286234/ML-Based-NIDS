@@ -1,0 +1,32 @@
+# ==============================================================================
+# Prometheus Configuration for NIDS
+# ==============================================================================
+# Scrapes metrics from the NIDS FastAPI service at /metrics
+#
+# Metrics available:
+#   - nids_predictions_total (counter, labels: prediction_class, is_attack)
+#   - nids_attacks_detected_total (counter, labels: attack_type)
+#   - nids_prediction_latency_seconds (histogram)
+#   - nids_models_loaded (gauge)
+#   - Auto-instrumented HTTP request metrics
+# ==============================================================================
+
+global:
+  scrape_interval: 15s       # How often to scrape targets
+  evaluation_interval: 15s   # How often to evaluate rules
+  scrape_timeout: 10s
+
+scrape_configs:
+  # NIDS API metrics
+  - job_name: "nids-api"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["nids-api:8000"]
+        labels:
+          service: "nids"
+          environment: "development"
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

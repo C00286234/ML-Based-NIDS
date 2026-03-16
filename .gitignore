@@ -1,0 +1,62 @@
+# ==============================================================================
+# NIDS-ML .gitignore
+# ==============================================================================
+
+# --- Large files (excluded to keep repo small) ---
+data/
+models/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+
+# --- Virtual environments ---
+.venv/
+venv/
+ENV/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Logs ---
+logs/
+*.log
+
+# --- Environment & secrets ---
+.env
+.env.*
+
+# --- IDE & tools ---
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*.bak
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+nul
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Personal documents ---
+Report.docx
+
+# --- Misc ---
+claude.exe
+api/new.txt
+test_capture.py

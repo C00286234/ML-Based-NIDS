@@ -1,0 +1,32 @@
+NIDS Benchmark Report
+============================================================
+Date: 2026-03-10 17:41:13
+
+Phase 1: Single Prediction Latency
+----------------------------------------
+  Requests:  30
+  Average:   2262.9 ms
+  Std Dev:   49.9 ms
+  P50:       2257.2 ms
+  P95:       2334.8 ms
+  P99:       2426.9 ms
+  Min:       2155.9 ms
+  Max:       2426.9 ms
+  Errors:    0
+
+Phase 2: Batch Throughput
+----------------------------------------
+    Batch Size   Total (ms)  Per-flow (ms)    Flows/sec
+            10       2188.1         218.81          4.6
+            50       2237.3          44.75         22.3
+           100       2208.3          22.08         45.3
+           500       2283.1           4.57        219.0
+
+Phase 4: Single vs Batch Comparison
+----------------------------------------
+  Flows compared:      100
+  Sequential total:    221228 ms
+  Sequential per-flow: 2212.3 ms
+  Batch total:         2250 ms
+  Batch per-flow:      22.50 ms
+  Speedup:             98.3x
