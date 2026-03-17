@@ -1,6 +1,7 @@
 # ============================================================================
 # STEP 2: DATA PREPROCESSING & CLEANING
 # Multi-class Classification for Network Intrusion Detection
+# Author: C00286234
 # ============================================================================
 # Converts raw CIC-IDS2017 CSVs into a single cleaned dataset.
 #

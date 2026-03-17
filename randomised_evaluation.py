@@ -7,6 +7,8 @@ samples to produce mean accuracy +/- std with 95% confidence intervals.
 This addresses the supervisor's concern about randomisation: a single fixed-seed
 test run doesn't prove the system generalises — multiple randomised runs do.
 
+Author: C00286234
+
 Usage:
     python randomised_evaluation.py                        # 10 runs x 20 samples/class
     python randomised_evaluation.py --runs 5 --samples 10  # Quick test

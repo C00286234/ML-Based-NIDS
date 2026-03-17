@@ -1,6 +1,7 @@
 # ============================================================================
 # STEP 3: FEATURE ENGINEERING & TRAIN-TEST SPLIT
 # Prepare data for multi-class classification (16 attack types)
+# Author: C00286234
 # ============================================================================
 # Loads the cleaned CSV, encodes labels, splits data, scales features,
 # selects top 50 features, and applies SMOTE for class balancing.

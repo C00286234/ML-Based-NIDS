@@ -12,7 +12,7 @@
 # 7. Early stopping for XGBoost
 # 8. Model ensembling option
 #
-# Author: FYP-NIDS-ML Project
+# Author: C00286234
 # Version: 2.0
 # ============================================================================
 
@@ -73,7 +73,7 @@ class Config:
     """Training configuration - easy to modify"""
 
     # Paths
-    BASE_PATH = r"C:\Users\folosiye\FYP-NIDS-ML"
+    BASE_PATH = r"C:\Users\folosiye\ML-BASED-NIDS"
     DATA_PATH = os.path.join(BASE_PATH, "data", "processed")
     MODELS_PATH = os.path.join(BASE_PATH, "models")
     FIGURES_PATH = os.path.join(BASE_PATH, "figures")

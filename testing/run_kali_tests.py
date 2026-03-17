@@ -4,6 +4,8 @@ Kali VM Attack Test Orchestrator
 Semi-automated script that guides you through running attacks from a Kali VM
 while the NIDS engine captures and classifies traffic.
 
+Author: C00286234
+
 For each attack:
   1. Shows the Kali command to run
   2. Waits for you to press Enter (start the attack)

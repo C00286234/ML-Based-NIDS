@@ -3,6 +3,8 @@ API Authentication Module
 =========================
 Provides API key authentication for the NIDS API.
 
+Author: C00286234
+
 Features:
 - X-API-Key header validation
 - Environment variable configuration

@@ -1,6 +1,7 @@
 # ============================================================================
 # NIDS DEMO TRAFFIC SIMULATOR
 # Interactive replay of CIC-IDS2017 flows for FYP demonstration
+# Author: C00286234
 # ============================================================================
 #
 # Sends real network flow data to the NIDS API with keyboard controls

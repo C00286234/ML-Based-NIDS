@@ -103,7 +103,7 @@ A real-time Network Intrusion Detection System that uses machine learning to cla
 ## Project Structure
 
 ```
-FYP-NIDS-ML/
+ML-BASED-NIDS/
 ├── api/                            # FastAPI prediction service
 │   ├── app.py                      # Main API (endpoints, model loading, SHAP)
 │   ├── auth.py                     # API key authentication
@@ -175,8 +175,8 @@ FYP-NIDS-ML/
 ### 1. Clone & Set Up
 
 ```bash
-git clone https://github.com/C00286234/FYP-NIDS-ML.git
-cd FYP-NIDS-ML
+git clone https://github.com/C00286234/ML-Based-NIDS.git
+cd ML-BASED-NIDS
 
 python -m venv .venv
 # Windows

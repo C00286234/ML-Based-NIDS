@@ -5,8 +5,11 @@ Groups individual packets into bidirectional network flows.
 
 A flow is defined by the 5-tuple: (src_ip, dst_ip, src_port, dst_port, protocol)
 Packets are tracked as either forward (src->dst) or backward (dst->src).
+
+Author: C00286234
 """
 
+# --- Imports: standard library and local packet capture module ---
 import time
 import logging
 import threading
@@ -24,10 +27,10 @@ except ImportError:
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from packet_capture import CapturedPacket
 
-# Configure logging
 logger = logging.getLogger("nids.flow")
 
 
+# --- PacketInfo dataclass: lightweight packet data stored within a flow ---
 @dataclass
 class PacketInfo:
     """
@@ -41,6 +44,7 @@ class PacketInfo:
     window_size: int = 0
 
 
+# --- Flow dataclass: bidirectional flow with per-direction packet lists and metadata ---
 @dataclass
 class Flow:
     """
@@ -74,7 +78,7 @@ class Flow:
     bwd_packets: List[PacketInfo] = field(default_factory=list)
     is_complete: bool = False
 
-    # Aggregated flag counts (across all packets)
+    # --- Flag tracking: per-direction TCP flag counters ---
     fwd_fin_flags: int = 0
     fwd_syn_flags: int = 0
     fwd_rst_flags: int = 0
@@ -101,7 +105,7 @@ class Flow:
     icmp_type: int = 0
     icmp_code: int = 0
 
-    # Activity tracking (for active/idle time calculation)
+    # --- Activity tracking: active/idle period calculation for flow features ---
     active_start: float = 0.0
     active_times: List[float] = field(default_factory=list)
     idle_times: List[float] = field(default_factory=list)
@@ -226,6 +230,7 @@ class Flow:
         return self.fwd_cwr_flags + self.bwd_cwr_flags
 
 
+# --- FlowAggregator class: manages active flows, timeouts, and completion ---
 class FlowAggregator:
     """
     Aggregates packets into bidirectional network flows.
@@ -274,6 +279,7 @@ class FlowAggregator:
 
         logger.info(f"FlowAggregator initialized: timeout={flow_timeout}s, max_packets={max_packets_per_flow}")
 
+    # --- Flow ID creation: canonical 5-tuple key for bidirectional matching ---
     def _create_flow_id(self, packet: CapturedPacket) -> Tuple[str, bool]:
         """
         Create a unique flow ID from packet 5-tuple.
@@ -296,6 +302,7 @@ class FlowAggregator:
             # New flow - use forward direction as canonical
             return fwd_id, True
 
+    # --- Packet processing: assign packet to existing or new flow ---
     def process_packet(self, packet: CapturedPacket) -> Optional[str]:
         """
         Process a captured packet and add to appropriate flow.
@@ -365,6 +372,7 @@ class FlowAggregator:
 
             return flow_id
 
+    # --- Flow completion logic: max packets, TCP FIN/RST detection ---
     def _should_complete_flow(self, flow: Flow) -> bool:
         """
         Check if a flow should be marked as complete.
@@ -388,6 +396,7 @@ class FlowAggregator:
 
         return False
 
+    # --- Cleanup: expire flows that have been idle beyond the timeout ---
     def cleanup_expired_flows(self) -> int:
         """
         Remove flows that have timed out.
@@ -448,6 +457,7 @@ class FlowAggregator:
 
             return all_flows
 
+    # --- Statistics: active flow count, packet throughput, completion totals ---
     def get_statistics(self) -> Dict[str, Any]:
         """
         Get aggregator statistics.
@@ -465,6 +475,7 @@ class FlowAggregator:
             }
 
 
+# --- Standalone test: simulate packets and verify flow aggregation ---
 if __name__ == "__main__":
     # Test flow aggregator with simulated packets
     logging.basicConfig(level=logging.INFO)

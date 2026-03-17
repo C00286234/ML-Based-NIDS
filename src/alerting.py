@@ -3,6 +3,8 @@ NIDS Alerting Module
 ====================
 Provides email and Slack alerting for detected attacks.
 
+Author: C00286234
+
 Features:
 - SMTP email support (Gmail, Outlook, custom SMTP)
 - Slack webhook notifications

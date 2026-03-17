@@ -1,9 +1,16 @@
 """
-Shared constants for the NIDS project.
+Shared Constants for NIDS
+=========================
+Central definition of constants shared across the NIDS project.
+
+Author: C00286234
 """
 
-# The 84 CIC-IDS2017 feature names in order, matching the trained model's
-# expected input. Authoritative source: FeatureExtractor.FEATURE_NAMES in
+# ==============================================================================
+# CIC-IDS2017 FEATURE NAMES (84 features)
+# ==============================================================================
+# The exact 84 feature names in order, matching the trained model's expected
+# input. Authoritative source: FeatureExtractor.FEATURE_NAMES in
 # src/feature_extractor.py.
 FEATURE_NAMES_84 = [
     "Src Port", "Dst Port", "Protocol", "Flow Duration",

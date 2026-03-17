@@ -3,8 +3,11 @@ NIDS Engine - Main Orchestrator
 ================================
 The main engine that coordinates packet capture, flow aggregation,
 feature extraction, and ML prediction for network intrusion detection.
+
+Author: C00286234
 """
 
+# --- Imports: standard library, third-party, and local NIDS modules ---
 import os
 import sys
 import time
@@ -25,7 +28,7 @@ from flow_aggregator import FlowAggregator, Flow
 from feature_extractor import FeatureExtractor
 from alerting import AlertManager
 
-# Configure logging
+# --- Logging configuration: console output format ---
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
@@ -50,6 +53,7 @@ class NIDSEngine:
         engine.start()  # Blocks until Ctrl+C
     """
 
+    # --- Class initialisation: load config, set up logging, create components ---
     def __init__(self, config_path: str):
         """
         Initialize the NIDS engine.
@@ -93,6 +97,7 @@ class NIDSEngine:
 
         logger.info("NIDS Engine initialized")
 
+    # --- Config loading: read YAML file or fall back to defaults ---
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file."""
         try:
@@ -142,6 +147,7 @@ class NIDSEngine:
             }
         }
 
+    # --- Logging setup: session logs, rolling logs, prediction and attack loggers ---
     def _init_logging(self) -> None:
         """Initialize file logging based on config."""
         log_config = self.config.get("logging", {})
@@ -204,6 +210,7 @@ class NIDSEngine:
         logger.info(f"=== SESSION START {session_ts} ===")
         logger.info(f"Session logs: {self._session_dir}")
 
+    # --- Component initialisation: packet capture, flow aggregator, feature extractor, alerting ---
     def _init_components(self) -> None:
         """Initialize NIDS components."""
         net_config = self.config.get("network", {})
@@ -236,6 +243,7 @@ class NIDSEngine:
         logger.info(f"Received signal {signum}, shutting down...")
         self.stop()
 
+    # --- API health check: verify ML prediction service is reachable and models loaded ---
     def _check_api_health(self) -> bool:
         """Check if the ML API is reachable."""
         api_config = self.config.get("api", {})
@@ -258,6 +266,7 @@ class NIDSEngine:
             logger.error(f"Cannot connect to API: {e}")
             return False
 
+    # --- Prediction pipeline: send features to ML API and handle retries ---
     def _predict_flow(
         self,
         features: Dict[str, float],
@@ -308,6 +317,7 @@ class NIDSEngine:
             self._stats["api_errors"] += 1
         return None
 
+    # --- Prediction handling: log results, update stats, trigger alerts for attacks ---
     def _handle_prediction(
         self,
         flow: Flow,
@@ -433,6 +443,7 @@ class NIDSEngine:
                 still_pending.append(future)
         self._pending_futures = still_pending
 
+    # --- Flow processing: extract features and submit predictions to thread pool ---
     def _process_flows(self) -> int:
         """
         Process all completed flows.
@@ -472,6 +483,7 @@ class NIDSEngine:
 
         return len(completed_flows)
 
+    # --- Statistics: display capture, flow, and prediction metrics ---
     def _print_statistics(self) -> None:
         """Print current statistics."""
         uptime = time.time() - self._stats["start_time"]
@@ -514,6 +526,7 @@ class NIDSEngine:
 
         print("=" * 70)
 
+    # --- Main loop: ingest packets, aggregate flows, run predictions, periodic cleanup ---
     def _main_loop(self) -> None:
         """Main processing loop."""
         perf_config = self.config.get("performance", {})
@@ -557,6 +570,7 @@ class NIDSEngine:
                 logger.error(f"Error in main loop: {e}")
                 time.sleep(1)
 
+    # --- Start/stop lifecycle: launch capture, enter main loop, handle shutdown ---
     def start(self) -> None:
         """
         Start the NIDS engine.
@@ -661,6 +675,7 @@ class NIDSEngine:
         logger.info("NIDS Engine stopped")
         print("\nNIDS Engine stopped.")
 
+    # --- Session summary: write human-readable report to session log directory ---
     def _save_session_summary(self) -> None:
         """Save a human-readable session summary to the session log directory."""
         if not hasattr(self, '_session_dir'):
@@ -706,6 +721,7 @@ class NIDSEngine:
             logger.error(f"Failed to save session summary: {e}")
 
 
+# --- CLI entry point: parse arguments, create engine, and start ---
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(

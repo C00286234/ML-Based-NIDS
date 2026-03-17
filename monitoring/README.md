@@ -76,7 +76,7 @@ docker-compose restart grafana
 
 # Reset Grafana (clear all customizations)
 docker-compose down
-docker volume rm fyp-nids-ml_grafana-data
+docker volume rm ml-based-nids_grafana-data
 docker-compose up -d
 
 # Check Prometheus config is valid

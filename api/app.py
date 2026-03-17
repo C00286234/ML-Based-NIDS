@@ -4,9 +4,10 @@ Network Intrusion Detection System (NIDS) - FastAPI Application
 A production-ready API for classifying network traffic flows into 16 attack types
 using Random Forest and XGBoost models with SHAP explainability.
 
-Author: FYP-NIDS-ML Project
+Author: C00286234
 """
 
+# --- Standard library imports ---
 import os
 import sys
 import logging
@@ -15,6 +16,7 @@ from typing import List, Dict, Any, Optional
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
+# --- Third-party imports ---
 import numpy as np
 import pandas as pd
 import joblib
@@ -22,7 +24,7 @@ from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
-# Local imports for security features
+# --- Local imports for security features ---
 from auth import get_api_key, get_auth_status, is_auth_enabled
 from rate_limit import (
     limiter, rate_limit_exceeded_handler, is_rate_limit_enabled,
@@ -31,7 +33,7 @@ from rate_limit import (
 if SLOWAPI_AVAILABLE:
     from slowapi.errors import RateLimitExceeded
 
-# Configure paths
+# --- Path configuration: resolve project root and key directories ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
@@ -102,6 +104,7 @@ logger, predictions_logger, attacks_logger = setup_logging()
 
 # ============================================================================
 # FEATURE DEFINITIONS
+# Full 84-feature list from constants; top-50 loaded from training output.
 # ============================================================================
 
 from src.constants import FEATURE_NAMES_84
@@ -136,6 +139,7 @@ SELECTED_FEATURES_50 = _load_selected_features()
 
 # ============================================================================
 # GLOBAL STATE
+# Singleton container for loaded ML models and runtime metrics.
 # ============================================================================
 
 class ModelState:
@@ -160,6 +164,7 @@ state = ModelState()
 
 # ============================================================================
 # PYDANTIC MODELS
+# Request/response schemas for FastAPI endpoint validation.
 # ============================================================================
 
 class NetworkFlowFeatures(BaseModel):
@@ -265,7 +270,8 @@ class MetricsResponse(BaseModel):
 
 
 # ============================================================================
-# MODEL LOADING
+# MODEL LOADING / UNLOADING
+# Load all ML artefacts at startup; release them on shutdown.
 # ============================================================================
 
 def load_models():
@@ -333,6 +339,7 @@ def unload_models():
 
 # ============================================================================
 # FASTAPI APP INITIALIZATION
+# Lifespan manager, app instance, CORS middleware, and rate-limiter wiring.
 # ============================================================================
 
 @asynccontextmanager
@@ -403,6 +410,7 @@ if SLOWAPI_AVAILABLE:
 
 # ==============================================================================
 # PROMETHEUS METRICS (optional)
+# Custom counters, histograms, and gauges for observability.
 # ==============================================================================
 
 try:
@@ -456,6 +464,7 @@ except ImportError:
 
 # ============================================================================
 # HELPER FUNCTIONS
+# Preprocessing, SHAP explainability, and prediction logging utilities.
 # ============================================================================
 
 def preprocess_features(features_dict: Dict[str, float]) -> np.ndarray:
@@ -576,6 +585,7 @@ def log_prediction(prediction: str, confidence: float, is_attack: bool, flow_id:
 
 # ============================================================================
 # API ENDPOINTS
+# Root, health, stats, predict, batch_predict, features, classes, security.
 # ============================================================================
 
 @app.get("/", tags=["General"])
@@ -922,6 +932,7 @@ async def get_security_status():
 
 # ============================================================================
 # MAIN ENTRY POINT
+# Launches uvicorn with optional hot-reload for development.
 # ============================================================================
 
 if __name__ == "__main__":
