@@ -18,7 +18,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, Any, Optional, List
-from collections import defaultdict
+from collections import defaultdict, deque
 
 import yaml
 import requests
@@ -35,6 +35,48 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger("nids.engine")
+
+
+class SynFloodDetector:
+    """Detect SYN floods by counting short RST-terminated SYN flows per target."""
+
+    def __init__(self, window_seconds: int = 10, threshold: int = 20):
+        self.window_seconds = window_seconds
+        self.threshold = threshold
+        self._flows: Dict[str, deque] = {}
+        self._lock = threading.Lock()
+
+    def record(self, src_ip: str, dst_ip: str, dst_port: int, ts: float) -> bool:
+        key = f"{src_ip}->{dst_ip}:{dst_port}"
+        with self._lock:
+            if key not in self._flows:
+                self._flows[key] = deque()
+            self._flows[key].append(ts)
+            cutoff = ts - self.window_seconds
+            while self._flows[key] and self._flows[key][0] < cutoff:
+                self._flows[key].popleft()
+            return len(self._flows[key]) >= self.threshold
+
+
+class PortScanDetector:
+    """Detect port scans by counting distinct destination ports per source."""
+
+    def __init__(self, window_seconds: int = 30, threshold: int = 15):
+        self.window_seconds = window_seconds
+        self.threshold = threshold
+        self._contacts: Dict[str, deque] = {}
+        self._lock = threading.Lock()
+
+    def record(self, src_ip: str, dst_ip: str, dst_port: int, ts: float) -> bool:
+        with self._lock:
+            if src_ip not in self._contacts:
+                self._contacts[src_ip] = deque()
+            self._contacts[src_ip].append((ts, dst_ip, dst_port))
+            cutoff = ts - self.window_seconds
+            while self._contacts[src_ip] and self._contacts[src_ip][0][0] < cutoff:
+                self._contacts[src_ip].popleft()
+            distinct = len(set((d, p) for _, d, p in self._contacts[src_ip]))
+            return distinct >= self.threshold
 
 
 class NIDSEngine:
@@ -91,6 +133,18 @@ class NIDSEngine:
         }
         self._stats_lock = threading.Lock()
 
+        # Rule-based detectors help with short scan and flood flows that the
+        # per-flow ML model often struggles to classify reliably.
+        heuristics_cfg = self.config.get("heuristics", {})
+        self.syn_flood_detector = SynFloodDetector(
+            window_seconds=heuristics_cfg.get("syn_flood_window", 10),
+            threshold=heuristics_cfg.get("syn_flood_threshold", 20),
+        )
+        self.port_scan_detector = PortScanDetector(
+            window_seconds=heuristics_cfg.get("port_scan_window", 30),
+            threshold=heuristics_cfg.get("port_scan_threshold", 15),
+        )
+
         # Setup signal handlers
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -144,6 +198,12 @@ class NIDSEngine:
                 "packet_batch_size": 100,
                 "cleanup_interval": 30,
                 "stats_interval": 10
+            },
+            "heuristics": {
+                "syn_flood_window": 10,
+                "syn_flood_threshold": 20,
+                "port_scan_window": 30,
+                "port_scan_threshold": 15
             }
         }
 
@@ -415,6 +475,40 @@ class NIDSEngine:
                 )
                 logger.info(f"  SHAP: {feat_str}")
 
+    def _trigger_heuristic_alert(self, flow: Flow, label: str) -> None:
+        """Log and alert for a heuristic detection."""
+        proto_map = {6: "TCP", 17: "UDP", 1: "ICMP"}
+        proto_name = proto_map.get(flow.protocol, str(flow.protocol))
+        flow_summary = (
+            f"{flow.src_ip}:{flow.src_port} -> "
+            f"{flow.dst_ip}:{flow.dst_port} ({proto_name})"
+        )
+
+        print(
+            f"  [!] ATTACK  {label:<28} "
+            f"conf=RULE  {flow_summary}  pkts={flow.total_packets}"
+        )
+        logger.warning(f"[HEURISTIC] {label} | {flow_summary}")
+        self._attack_logger.warning(
+            f"ATTACK | {label:<28} | conf=RULE | {flow_summary} | pkts={flow.total_packets}"
+        )
+
+        with self._stats_lock:
+            self._stats["attacks_detected"] += 1
+            self._stats["attack_distribution"][label] += 1
+
+        self.alert_manager.send_attack_alert(
+            attack_type=label,
+            confidence=1.0,
+            source_ip=flow.src_ip,
+            destination_ip=flow.dst_ip,
+            source_port=flow.src_port,
+            destination_port=flow.dst_port,
+            protocol=flow.protocol,
+            features={},
+            flow_id=flow.flow_id,
+        )
+
     def _predict_and_handle(self, flow: Flow, features: Dict[str, float]) -> None:
         """
         Predict and handle a single flow. Runs in a thread pool worker.
@@ -460,6 +554,26 @@ class NIDSEngine:
             try:
                 # Extract features (fast - runs inline)
                 features = self.feature_extractor.extract_features(flow)
+
+                # Heuristics run before ML to catch micro-flow attack patterns
+                # such as SYN floods and short scan probes.
+                ts = time.time()
+
+                if (
+                    flow.total_rst_flags > 0
+                    and flow.total_syn_flags > 0
+                    and flow.total_packets <= 5
+                ):
+                    if self.syn_flood_detector.record(
+                        flow.src_ip, flow.dst_ip, flow.dst_port, ts
+                    ):
+                        self._trigger_heuristic_alert(flow, "SYN Flood (heuristic)")
+
+                if flow.total_packets <= 3:
+                    if self.port_scan_detector.record(
+                        flow.src_ip, flow.dst_ip, flow.dst_port, ts
+                    ):
+                        self._trigger_heuristic_alert(flow, "Port Scan (heuristic)")
 
                 # Validate features
                 if not self.feature_extractor.validate_features(features):

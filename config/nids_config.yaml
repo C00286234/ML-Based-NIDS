@@ -42,3 +42,8 @@ performance:
   packet_batch_size: 500
   cleanup_interval: 5
   stats_interval: 10
+heuristics:
+  syn_flood_window: 10
+  syn_flood_threshold: 20
+  port_scan_window: 30
+  port_scan_threshold: 15
