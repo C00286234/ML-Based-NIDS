@@ -4,8 +4,6 @@ Kali Test Results Parser
 Parses NIDS session logs against a test plan (from run_kali_tests.py) to
 determine which attacks were detected, missed, or misclassified.
 
-Author: C00286234
-
 Reads predictions.log from the NIDS session directory and correlates
 each prediction's timestamp against the attack time windows from the test plan.
 

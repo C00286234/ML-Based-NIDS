@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.11-slim AS production
 
 # Labels
-LABEL maintainer="ML-BASED-NIDS Project"
+LABEL maintainer="FYP-NIDS-ML Project"
 LABEL description="Network Intrusion Detection System API"
 LABEL version="1.0.0"
 

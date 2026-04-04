@@ -3,8 +3,6 @@ Target Services Launcher
 =========================
 Starts all target services that the Kali VM will attack during NIDS testing.
 
-Author: C00286234
-
 Services:
     - Vulnerable webapp on port 8080 (Flask - XSS, SQLi, brute force targets)
     - FTP server on port 21 (pyftpdlib - for FTP brute force testing)

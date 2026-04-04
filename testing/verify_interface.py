@@ -4,8 +4,6 @@ Network Interface Verifier
 Lists all Scapy-visible interfaces with their IPs and optionally
 captures a few packets to confirm traffic is visible on a given interface.
 
-Author: C00286234
-
 Use this to find the correct VirtualBox Host-Only adapter for Kali VM testing.
 
 Usage:

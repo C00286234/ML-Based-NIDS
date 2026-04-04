@@ -5,11 +5,8 @@ Captures network packets using Scapy and stores them in a thread-safe queue.
 
 This module provides low-level packet capture functionality that feeds into
 the flow aggregation pipeline.
-
-Author: C00286234
 """
 
-# --- Imports and dependencies: standard library, Scapy (with graceful fallback) ---
 import threading
 import queue
 import time
@@ -25,10 +22,10 @@ except ImportError:
     SCAPY_AVAILABLE = False
     print("WARNING: Scapy not installed. Run: pip install scapy")
 
+# Configure logging
 logger = logging.getLogger("nids.capture")
 
 
-# --- CapturedPacket dataclass: structured representation of a single captured packet ---
 @dataclass
 class CapturedPacket:
     """
@@ -79,7 +76,6 @@ class PacketCapture:
         capture.stop()
     """
 
-    # --- Initialisation: configure interface, queue, and capture thread controls ---
     def __init__(
         self,
         interface: Optional[str] = None,
@@ -119,7 +115,6 @@ class PacketCapture:
 
         logger.info(f"PacketCapture initialized: interface={interface}, promiscuous={promiscuous}")
 
-    # --- Packet callback: extract IP/TCP/UDP/ICMP fields and enqueue the packet ---
     def _packet_callback(self, packet) -> None:
         """
         Callback function called by Scapy for each captured packet.
@@ -204,7 +199,6 @@ class PacketCapture:
         except Exception as e:
             logger.debug(f"Error processing packet: {e}")
 
-    # --- Capture loop: Scapy sniff running in a background thread ---
     def _capture_loop(self) -> None:
         """
         Main capture loop running in background thread.
@@ -231,7 +225,6 @@ class PacketCapture:
         finally:
             logger.info("Packet capture stopped")
 
-    # --- Start/stop control: launch and gracefully terminate the capture thread ---
     def start(self) -> None:
         """
         Start packet capture in background thread.
@@ -274,7 +267,6 @@ class PacketCapture:
         self._is_running = False
         logger.info(f"Capture stopped. Total packets: {self._packets_captured}, Dropped: {self._packets_dropped}")
 
-    # --- Packet retrieval: drain packets from the thread-safe queue ---
     def get_packets(self, max_count: int = 100) -> List[CapturedPacket]:
         """
         Retrieve captured packets from the queue.
@@ -300,7 +292,6 @@ class PacketCapture:
         """Get current number of packets waiting in queue."""
         return self._packet_queue.qsize()
 
-    # --- Statistics: capture counts, drop rate, and throughput ---
     def get_statistics(self) -> Dict[str, Any]:
         """
         Get capture statistics.
@@ -326,7 +317,6 @@ class PacketCapture:
         return self._is_running
 
 
-# --- Interface listing: enumerate available network interfaces (cross-platform) ---
 def list_interfaces() -> List[str]:
     """
     List available network interfaces.
@@ -350,7 +340,6 @@ def list_interfaces() -> List[str]:
         return []
 
 
-# --- Standalone test: capture packets for manual verification ---
 if __name__ == "__main__":
     # Test packet capture
     logging.basicConfig(level=logging.INFO)

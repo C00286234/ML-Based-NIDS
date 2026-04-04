@@ -43,7 +43,7 @@ performance:
   cleanup_interval: 5
   stats_interval: 10
 heuristics:
-  syn_flood_window: 10
-  syn_flood_threshold: 20
-  port_scan_window: 30
-  port_scan_threshold: 15
+  syn_flood_window: 10        # seconds to count SYN micro-flows
+  syn_flood_threshold: 20     # RST-terminated SYN flows in window to trigger alert
+  port_scan_window: 30        # seconds to count port contacts
+  port_scan_threshold: 15     # distinct dst ports in window to trigger alert

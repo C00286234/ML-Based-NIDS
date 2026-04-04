@@ -3,8 +3,6 @@ NIDS Real-Time Dashboard
 ========================
 A Flask-based web dashboard for monitoring the NIDS system.
 
-Author: C00286234
-
 Features:
 - Real-time attack count display
 - Last 100 predictions table

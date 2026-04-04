@@ -3,11 +3,8 @@ NIDS Engine - Main Orchestrator
 ================================
 The main engine that coordinates packet capture, flow aggregation,
 feature extraction, and ML prediction for network intrusion detection.
-
-Author: C00286234
 """
 
-# --- Imports: standard library, third-party, and local NIDS modules ---
 import os
 import sys
 import time
@@ -28,7 +25,7 @@ from flow_aggregator import FlowAggregator, Flow
 from feature_extractor import FeatureExtractor
 from alerting import AlertManager
 
-# --- Logging configuration: console output format ---
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
@@ -38,7 +35,7 @@ logger = logging.getLogger("nids.engine")
 
 
 class SynFloodDetector:
-    """Detect SYN floods by counting short RST-terminated SYN flows per target."""
+    """Detects SYN flood attacks by counting RST-terminated short SYN flows per src→dst:port pair."""
 
     def __init__(self, window_seconds: int = 10, threshold: int = 20):
         self.window_seconds = window_seconds
@@ -59,7 +56,7 @@ class SynFloodDetector:
 
 
 class PortScanDetector:
-    """Detect port scans by counting distinct destination ports per source."""
+    """Detects port scans by counting distinct (dst_ip, dst_port) pairs contacted by a src_ip."""
 
     def __init__(self, window_seconds: int = 30, threshold: int = 15):
         self.window_seconds = window_seconds
@@ -95,7 +92,6 @@ class NIDSEngine:
         engine.start()  # Blocks until Ctrl+C
     """
 
-    # --- Class initialisation: load config, set up logging, create components ---
     def __init__(self, config_path: str):
         """
         Initialize the NIDS engine.
@@ -133,8 +129,7 @@ class NIDSEngine:
         }
         self._stats_lock = threading.Lock()
 
-        # Rule-based detectors help with short scan and flood flows that the
-        # per-flow ML model often struggles to classify reliably.
+        # Heuristic detectors for attacks undetectable at per-flow ML level
         heuristics_cfg = self.config.get("heuristics", {})
         self.syn_flood_detector = SynFloodDetector(
             window_seconds=heuristics_cfg.get("syn_flood_window", 10),
@@ -151,7 +146,6 @@ class NIDSEngine:
 
         logger.info("NIDS Engine initialized")
 
-    # --- Config loading: read YAML file or fall back to defaults ---
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file."""
         try:
@@ -198,16 +192,9 @@ class NIDSEngine:
                 "packet_batch_size": 100,
                 "cleanup_interval": 30,
                 "stats_interval": 10
-            },
-            "heuristics": {
-                "syn_flood_window": 10,
-                "syn_flood_threshold": 20,
-                "port_scan_window": 30,
-                "port_scan_threshold": 15
             }
         }
 
-    # --- Logging setup: session logs, rolling logs, prediction and attack loggers ---
     def _init_logging(self) -> None:
         """Initialize file logging based on config."""
         log_config = self.config.get("logging", {})
@@ -270,7 +257,6 @@ class NIDSEngine:
         logger.info(f"=== SESSION START {session_ts} ===")
         logger.info(f"Session logs: {self._session_dir}")
 
-    # --- Component initialisation: packet capture, flow aggregator, feature extractor, alerting ---
     def _init_components(self) -> None:
         """Initialize NIDS components."""
         net_config = self.config.get("network", {})
@@ -303,7 +289,6 @@ class NIDSEngine:
         logger.info(f"Received signal {signum}, shutting down...")
         self.stop()
 
-    # --- API health check: verify ML prediction service is reachable and models loaded ---
     def _check_api_health(self) -> bool:
         """Check if the ML API is reachable."""
         api_config = self.config.get("api", {})
@@ -326,7 +311,6 @@ class NIDSEngine:
             logger.error(f"Cannot connect to API: {e}")
             return False
 
-    # --- Prediction pipeline: send features to ML API and handle retries ---
     def _predict_flow(
         self,
         features: Dict[str, float],
@@ -377,7 +361,6 @@ class NIDSEngine:
             self._stats["api_errors"] += 1
         return None
 
-    # --- Prediction handling: log results, update stats, trigger alerts for attacks ---
     def _handle_prediction(
         self,
         flow: Flow,
@@ -475,39 +458,37 @@ class NIDSEngine:
                 )
                 logger.info(f"  SHAP: {feat_str}")
 
-    def _trigger_heuristic_alert(self, flow: Flow, label: str) -> None:
-        """Log and alert for a heuristic detection."""
+    def _trigger_heuristic_alert(
+        self, flow: Flow, attack_type: str, label: str
+    ) -> None:
+        """Log and alert for a heuristic (rule-based) detection."""
         proto_map = {6: "TCP", 17: "UDP", 1: "ICMP"}
-        proto_name = proto_map.get(flow.protocol, str(flow.protocol))
-        flow_summary = (
-            f"{flow.src_ip}:{flow.src_port} -> "
-            f"{flow.dst_ip}:{flow.dst_port} ({proto_name})"
-        )
+        proto = proto_map.get(flow.protocol, str(flow.protocol))
+        summary = (f"{flow.src_ip}:{flow.src_port} -> "
+                   f"{flow.dst_ip}:{flow.dst_port} ({proto})")
 
-        print(
-            f"  [!] ATTACK  {label:<28} "
-            f"conf=RULE  {flow_summary}  pkts={flow.total_packets}"
-        )
-        logger.warning(f"[HEURISTIC] {label} | {flow_summary}")
+        print(f"  [!] ATTACK  {label:<28} conf=RULE  {summary}  pkts={flow.total_packets}")
+        logger.warning(f"[HEURISTIC] {label} | {summary}")
         self._attack_logger.warning(
-            f"ATTACK | {label:<28} | conf=RULE | {flow_summary} | pkts={flow.total_packets}"
+            f"ATTACK | {label:<28} | conf=RULE | {summary} | pkts={flow.total_packets}"
         )
 
         with self._stats_lock:
             self._stats["attacks_detected"] += 1
             self._stats["attack_distribution"][label] += 1
 
-        self.alert_manager.send_attack_alert(
-            attack_type=label,
-            confidence=1.0,
-            source_ip=flow.src_ip,
-            destination_ip=flow.dst_ip,
-            source_port=flow.src_port,
-            destination_port=flow.dst_port,
-            protocol=flow.protocol,
-            features={},
-            flow_id=flow.flow_id,
-        )
+        if self.alert_manager:
+            self.alert_manager.send_attack_alert(
+                attack_type=label,
+                confidence=1.0,
+                source_ip=flow.src_ip,
+                destination_ip=flow.dst_ip,
+                source_port=flow.src_port,
+                destination_port=flow.dst_port,
+                protocol=flow.protocol,
+                features={},
+                flow_id=flow.flow_id,
+            )
 
     def _predict_and_handle(self, flow: Flow, features: Dict[str, float]) -> None:
         """
@@ -537,7 +518,6 @@ class NIDSEngine:
                 still_pending.append(future)
         self._pending_futures = still_pending
 
-    # --- Flow processing: extract features and submit predictions to thread pool ---
     def _process_flows(self) -> int:
         """
         Process all completed flows.
@@ -555,25 +535,25 @@ class NIDSEngine:
                 # Extract features (fast - runs inline)
                 features = self.feature_extractor.extract_features(flow)
 
-                # Heuristics run before ML to catch micro-flow attack patterns
-                # such as SYN floods and short scan probes.
-                ts = time.time()
+                # Heuristic checks (run before ML — these catch SYN floods and port scans
+                # that produce micro-flows the ML model cannot classify correctly)
+                _ts = time.time()
 
-                if (
-                    flow.total_rst_flags > 0
-                    and flow.total_syn_flags > 0
-                    and flow.total_packets <= 5
-                ):
+                # SYN flood: RST-terminated short SYN flow
+                if (flow.total_rst_flags > 0
+                        and flow.total_syn_flags > 0
+                        and flow.total_packets <= 5):
                     if self.syn_flood_detector.record(
-                        flow.src_ip, flow.dst_ip, flow.dst_port, ts
-                    ):
-                        self._trigger_heuristic_alert(flow, "SYN Flood (heuristic)")
+                            flow.src_ip, flow.dst_ip, flow.dst_port, _ts):
+                        self._trigger_heuristic_alert(
+                            flow, "DDoS", "SYN Flood (heuristic)")
 
+                # Port scan: any short flow to a new port
                 if flow.total_packets <= 3:
                     if self.port_scan_detector.record(
-                        flow.src_ip, flow.dst_ip, flow.dst_port, ts
-                    ):
-                        self._trigger_heuristic_alert(flow, "Port Scan (heuristic)")
+                            flow.src_ip, flow.dst_ip, flow.dst_port, _ts):
+                        self._trigger_heuristic_alert(
+                            flow, "PortScan", "Port Scan (heuristic)")
 
                 # Validate features
                 if not self.feature_extractor.validate_features(features):
@@ -597,7 +577,6 @@ class NIDSEngine:
 
         return len(completed_flows)
 
-    # --- Statistics: display capture, flow, and prediction metrics ---
     def _print_statistics(self) -> None:
         """Print current statistics."""
         uptime = time.time() - self._stats["start_time"]
@@ -640,7 +619,6 @@ class NIDSEngine:
 
         print("=" * 70)
 
-    # --- Main loop: ingest packets, aggregate flows, run predictions, periodic cleanup ---
     def _main_loop(self) -> None:
         """Main processing loop."""
         perf_config = self.config.get("performance", {})
@@ -684,7 +662,6 @@ class NIDSEngine:
                 logger.error(f"Error in main loop: {e}")
                 time.sleep(1)
 
-    # --- Start/stop lifecycle: launch capture, enter main loop, handle shutdown ---
     def start(self) -> None:
         """
         Start the NIDS engine.
@@ -789,7 +766,6 @@ class NIDSEngine:
         logger.info("NIDS Engine stopped")
         print("\nNIDS Engine stopped.")
 
-    # --- Session summary: write human-readable report to session log directory ---
     def _save_session_summary(self) -> None:
         """Save a human-readable session summary to the session log directory."""
         if not hasattr(self, '_session_dir'):
@@ -835,7 +811,6 @@ class NIDSEngine:
             logger.error(f"Failed to save session summary: {e}")
 
 
-# --- CLI entry point: parse arguments, create engine, and start ---
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(

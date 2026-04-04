@@ -3,14 +3,11 @@ NIDS API Test Client
 ====================
 Test script to verify all API endpoints are working correctly.
 
-Author: C00286234
-
 Usage:
     python test_client.py
     python test_client.py --url http://localhost:8000
 """
 
-# --- Imports ---
 import argparse
 import json
 import sys
@@ -24,7 +21,7 @@ except ImportError:
     sys.exit(1)
 
 
-# --- Sample flow data: benign and attack payloads for endpoint testing ---
+# Default API URL
 DEFAULT_URL = "http://localhost:8000"
 
 # Sample network flow with 84 features (typical BENIGN traffic)
@@ -204,7 +201,6 @@ SAMPLE_ATTACK_FLOW = {
 }
 
 
-# --- Terminal colours for formatted test output ---
 class Colors:
     """ANSI color codes for terminal output."""
     GREEN = "\033[92m"
@@ -215,7 +211,6 @@ class Colors:
     BOLD = "\033[1m"
 
 
-# --- Test helper functions: output formatting and endpoint invocation ---
 def print_header(text: str):
     """Print a formatted header."""
     print(f"\n{Colors.BOLD}{Colors.BLUE}{'=' * 60}{Colors.RESET}")
@@ -289,7 +284,6 @@ def test_endpoint(
         return False, {}
 
 
-# --- Test suite runner: exercises every API endpoint sequentially ---
 def run_tests(base_url: str) -> Dict[str, Any]:
     """
     Run all API tests and return results summary.
@@ -437,7 +431,6 @@ def run_tests(base_url: str) -> Dict[str, Any]:
     return results
 
 
-# --- Main entry point ---
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="NIDS API Test Client")

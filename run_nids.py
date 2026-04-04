@@ -4,8 +4,6 @@ NIDS Launcher
 Starts both the ML API and NIDS Engine, saving all output to timestamped
 session logs under logs/sessions/.
 
-Author: C00286234
-
 Usage:
     python run_nids.py                  # WiFi interface (default)
     python run_nids.py -i Ethernet      # Specify interface
@@ -13,7 +11,6 @@ Usage:
     python run_nids.py --engine-only    # Start engine only (API must be running)
 """
 
-# --- Imports: standard library modules for process management and I/O ---
 import os
 import sys
 import time
@@ -22,13 +19,9 @@ import subprocess
 import argparse
 from datetime import datetime
 
-# --- Project root path (used to locate api/ and src/ directories) ---
+# Project root
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-
-# ==============================================================================
-# OUTPUT PIPING
-# ==============================================================================
 
 def pipe_output(proc, log_file, label, show_console=True):
     """Read process stdout line-by-line, write to log file and optionally console."""
@@ -43,19 +36,14 @@ def pipe_output(proc, log_file, label, show_console=True):
     proc.stdout.close()
 
 
-# ==============================================================================
-# MAIN LAUNCHER
-# ==============================================================================
-
 def main():
-    # --- Argument parsing: interface selection and component toggles ---
     parser = argparse.ArgumentParser(description="NIDS Launcher — starts API + Engine")
     parser.add_argument("-i", "--interface", default=None, help="Network interface (default: from config)")
     parser.add_argument("--api-only", action="store_true", help="Start API only")
     parser.add_argument("--engine-only", action="store_true", help="Start engine only (API must already be running)")
     args = parser.parse_args()
 
-    # --- Session setup: create timestamped log directory ---
+    # Session directory
     session_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     session_dir = os.path.join(ROOT, "logs", "sessions", session_ts)
     os.makedirs(session_dir, exist_ok=True)
@@ -71,9 +59,7 @@ def main():
     threads = []
 
     try:
-        # ==============================================================
-        # START API SERVER (FastAPI on port 8000)
-        # ==============================================================
+        # --- Start API ---
         if not args.engine_only:
             api_log = os.path.join(session_dir, "api_output.log")
 
@@ -111,9 +97,7 @@ def main():
             else:
                 print("\n    WARNING: API did not respond in 30s. Check api_output.log")
 
-        # ==============================================================
-        # START NIDS ENGINE (real-time packet capture + ML prediction)
-        # ==============================================================
+        # --- Start Engine ---
         if not args.api_only:
             engine_log = os.path.join(session_dir, "engine_output.log")
 
@@ -156,7 +140,7 @@ def main():
     except KeyboardInterrupt:
         print("\n\nShutting down...")
     finally:
-        # --- Graceful shutdown: terminate subprocesses and flush logs ---
+        # Terminate all processes
         for name, proc in processes:
             if proc.poll() is None:
                 print(f"  Stopping {name} (PID {proc.pid})...")

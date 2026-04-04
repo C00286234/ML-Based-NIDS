@@ -4,8 +4,6 @@ NIDS Attack Detection Test Script
 Loads real attack samples from CIC-IDS2017 test data and sends them to the
 NIDS API to validate that the system correctly detects each attack type.
 
-Author: C00286234
-
 Usage:
     python test_attack_detection.py                     # Test all attack types (5 samples each)
     python test_attack_detection.py --attack DDoS        # Test a specific attack type

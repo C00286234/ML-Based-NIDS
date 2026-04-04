@@ -5,8 +5,6 @@ Extracts the 84 CIC-IDS2017 features from network flows.
 
 This module computes all features required by the trained ML model,
 matching the exact feature names and calculations used in training.
-
-Author: C00286234
 """
 
 import math

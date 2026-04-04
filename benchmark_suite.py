@@ -4,8 +4,6 @@ NIDS Benchmark Suite
 Measures system performance: latency percentiles, batch throughput,
 concurrent throughput, and single-vs-batch speedup.
 
-Author: C00286234
-
 Usage:
     python benchmark_suite.py                          # Default (skip concurrent)
     python benchmark_suite.py --skip-concurrent        # Safe without disabling rate limit

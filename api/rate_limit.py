@@ -3,8 +3,6 @@ Rate Limiting Module
 ====================
 Provides rate limiting for the NIDS API using slowapi.
 
-Author: C00286234
-
 Features:
 - Per-IP rate limiting
 - Configurable limits via environment variables

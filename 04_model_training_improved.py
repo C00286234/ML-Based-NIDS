@@ -12,7 +12,7 @@
 # 7. Early stopping for XGBoost
 # 8. Model ensembling option
 #
-# Author: C00286234
+# Author: FYP-NIDS-ML Project
 # Version: 2.0
 # ============================================================================
 
@@ -73,7 +73,7 @@ class Config:
     """Training configuration - easy to modify"""
 
     # Paths
-    BASE_PATH = r"C:\Users\folosiye\ML-BASED-NIDS"
+    BASE_PATH = r"C:\Users\folosiye\FYP-NIDS-ML"
     DATA_PATH = os.path.join(BASE_PATH, "data", "processed")
     MODELS_PATH = os.path.join(BASE_PATH, "models")
     FIGURES_PATH = os.path.join(BASE_PATH, "figures")
@@ -95,7 +95,7 @@ class Config:
     MERGE_RARE_CLASSES = False  # Keep all 16 classes instead of merging rare ones
 
     # Model training
-    USE_HYPERPARAMETER_TUNING = True   # Enabled for optimised final models
+    USE_HYPERPARAMETER_TUNING = False  # Disabled — current models already at 99.89% accuracy
     N_ITER_SEARCH = 10  # Reduced for memory efficiency
     CV_FOLDS = 3  # Reduced for memory efficiency
     N_JOBS = 2  # Limit parallel jobs to save memory (use -1 for all cores if RAM > 16GB)

@@ -4,8 +4,6 @@ Deliberately Vulnerable Web Application
 A minimal Flask app with intentionally vulnerable endpoints for testing
 the NIDS against real web attacks from a Kali VM.
 
-Author: C00286234
-
 WARNING: This application is INTENTIONALLY INSECURE. It is designed to be
 attacked. Never expose it to any network beyond your isolated test lab.
 
