@@ -369,19 +369,19 @@ def handle_class_imbalance(X_train, y_train):
     majority_count = max(class_counts.values())
 
     if Config.SMOTE_STRATEGY == 'conservative':
-        # Max 5x increase, cap at 50k
-        target_counts = {
-            cls: min(count * 5, 50000, majority_count // 2)
-            for cls, count in class_counts.items()
-            if count < majority_count // 2
-        }
+        # Max 5x increase, cap at 50k, never exceed half the majority
+        target_counts = {}
+        for cls, count in class_counts.items():
+            target = min(count * 5, 50000, majority_count // 2)
+            if target > count:
+                target_counts[cls] = target
     elif Config.SMOTE_STRATEGY == 'moderate':
-        # Max 10x increase, cap at 100k
-        target_counts = {
-            cls: min(count * 10, 100000, majority_count)
-            for cls, count in class_counts.items()
-            if count < majority_count
-        }
+        # Max 10x increase, cap at 100k, never exceed majority
+        target_counts = {}
+        for cls, count in class_counts.items():
+            target = min(count * 10, 100000, majority_count)
+            if target > count:
+                target_counts[cls] = target
     else:  # aggressive (original behavior - not recommended)
         target_counts = 'not majority'
 
@@ -398,7 +398,6 @@ def handle_class_imbalance(X_train, y_train):
             sampling_strategy=target_counts if isinstance(target_counts, dict) else target_counts,
             k_neighbors=k_neighbors,
             random_state=Config.RANDOM_STATE,
-            n_jobs=Config.N_JOBS
         )
 
         X_resampled, y_resampled = smote.fit_resample(X_train, y_train)

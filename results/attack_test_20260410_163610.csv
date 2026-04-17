@@ -1,0 +1,81 @@
+true_label,predicted_label,confidence,is_attack,correct,latency_ms
+BENIGN,BENIGN,1.0,False,True,2133.9
+BENIGN,BENIGN,1.0,False,True,2130.5
+BENIGN,BENIGN,1.0,False,True,2140.5
+BENIGN,BENIGN,1.0,False,True,2125.3
+BENIGN,BENIGN,1.0,False,True,2129.7
+Botnet,Botnet,0.9973,True,True,2132.8
+Botnet,Botnet,0.9999,True,True,2130.2
+Botnet,Botnet,0.9962,True,True,2134.1
+Botnet,Botnet,0.9891,True,True,2126.3
+Botnet,Botnet,0.9996,True,True,2125.5
+DDoS,DDoS,1.0,True,True,2134.5
+DDoS,DDoS,1.0,True,True,2139.8
+DDoS,DDoS,1.0,True,True,2156.1
+DDoS,DDoS,1.0,True,True,2145.8
+DDoS,DDoS,1.0,True,True,2153.3
+DoS GoldenEye,DoS GoldenEye,1.0,True,True,2145.2
+DoS GoldenEye,DoS GoldenEye,1.0,True,True,2121.8
+DoS GoldenEye,DoS GoldenEye,1.0,True,True,2105.4
+DoS GoldenEye,DoS GoldenEye,0.9999,True,True,2123.1
+DoS GoldenEye,DoS GoldenEye,1.0,True,True,2155.9
+DoS Hulk,DoS Hulk,1.0,True,True,2143.0
+DoS Hulk,DoS Hulk,1.0,True,True,2130.4
+DoS Hulk,DoS Hulk,1.0,True,True,2139.1
+DoS Hulk,DoS Hulk,1.0,True,True,2140.7
+DoS Hulk,DoS Hulk,1.0,True,True,2166.9
+DoS Slowhttptest,DoS Slowhttptest,0.9998,True,True,2144.9
+DoS Slowhttptest,DoS Slowhttptest,0.9639,True,True,2119.5
+DoS Slowhttptest,DoS Slowhttptest,0.9988,True,True,2157.5
+DoS Slowhttptest,DoS Slowhttptest,0.9994,True,True,2155.1
+DoS Slowhttptest,DoS Slowhttptest,0.9923,True,True,2120.5
+DoS Slowloris,DoS Slowloris,0.9997,True,True,2138.8
+DoS Slowloris,DoS Slowloris,0.9999,True,True,2152.0
+DoS Slowloris,DoS Slowloris,0.9999,True,True,2124.5
+DoS Slowloris,DoS Slowloris,0.9999,True,True,2153.3
+DoS Slowloris,DoS Slowloris,0.9999,True,True,2134.5
+FTP-Patator,FTP-Patator,0.9999,True,True,2135.4
+FTP-Patator,FTP-Patator,0.9999,True,True,2131.9
+FTP-Patator,FTP-Patator,0.9999,True,True,2099.6
+FTP-Patator,FTP-Patator,0.9999,True,True,2133.8
+FTP-Patator,FTP-Patator,0.9999,True,True,2128.4
+Heartbleed,Heartbleed,0.9771,True,True,2118.9
+Heartbleed,Heartbleed,0.8718,True,True,2155.7
+Heartbleed,Heartbleed,0.9826,True,True,2143.5
+Heartbleed,BENIGN,0.4603,False,False,2129.5
+Heartbleed,Heartbleed,0.9126,True,True,2150.1
+Infiltration,Infiltration,0.9315,True,True,2111.4
+Infiltration,Infiltration,0.9235,True,True,2128.8
+Infiltration,Infiltration,0.9625,True,True,2159.1
+Infiltration,Infiltration,0.977,True,True,2150.5
+Infiltration,Infiltration,0.7626,True,True,2123.0
+Infiltration - Portscan,Infiltration - Portscan,1.0,True,True,2161.7
+Infiltration - Portscan,Infiltration - Portscan,0.6935,True,True,2123.7
+Infiltration - Portscan,Infiltration - Portscan,0.9999,True,True,2128.5
+Infiltration - Portscan,Infiltration - Portscan,1.0,True,True,2147.9
+Infiltration - Portscan,Infiltration - Portscan,1.0,True,True,2120.6
+Portscan,Portscan,0.9888,True,True,2153.6
+Portscan,Portscan,0.9667,True,True,2145.0
+Portscan,Portscan,0.9624,True,True,2177.6
+Portscan,Portscan,0.997,True,True,2144.0
+Portscan,Portscan,0.9774,True,True,2125.6
+SSH-Patator,SSH-Patator,1.0,True,True,2113.9
+SSH-Patator,SSH-Patator,0.9999,True,True,2107.4
+SSH-Patator,SSH-Patator,1.0,True,True,2111.2
+SSH-Patator,SSH-Patator,0.9924,True,True,2111.5
+SSH-Patator,SSH-Patator,1.0,True,True,2139.4
+Web Attack - Brute Force,Web Attack - Brute Force,0.5873,True,True,2088.8
+Web Attack - Brute Force,Web Attack - Brute Force,0.6005,True,True,2122.4
+Web Attack - Brute Force,Web Attack - Brute Force,0.532,True,True,2114.0
+Web Attack - Brute Force,Web Attack - Brute Force,0.7515,True,True,2165.8
+Web Attack - Brute Force,Web Attack - Brute Force,0.9743,True,True,2103.8
+Web Attack - SQL Injection,Web Attack - SQL Injection,0.6446,True,True,2164.5
+Web Attack - SQL Injection,Web Attack - SQL Injection,0.6397,True,True,2114.0
+Web Attack - SQL Injection,Web Attack - SQL Injection,0.9616,True,True,2163.8
+Web Attack - SQL Injection,BENIGN,0.6174,False,False,2126.2
+Web Attack - SQL Injection,Web Attack - SQL Injection,0.67,True,True,2121.3
+Web Attack - XSS,Web Attack - Brute Force,0.5614,True,False,2103.7
+Web Attack - XSS,Web Attack - Brute Force,0.5429,True,False,2113.0
+Web Attack - XSS,Web Attack - XSS,0.5892,True,True,2103.9
+Web Attack - XSS,Web Attack - XSS,0.6745,True,True,2131.2
+Web Attack - XSS,Web Attack - XSS,0.9952,True,True,2146.6

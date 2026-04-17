@@ -203,9 +203,18 @@ class SimulatorState:
 
 def send_flow(features, api_url):
     """Send a single flow to the API and return the prediction."""
-    payload = {
-        "features": {name: float(val) for name, val in zip(FEATURE_NAMES_84, features)}
-    }
+    feature_dict = {name: float(val) for name, val in zip(FEATURE_NAMES_84, features)}
+
+    # Synthesize a flow_id so the dashboard can show IPs.
+    # CIC-IDS2017 doesn't carry raw IPs in the 84 features,
+    # so we generate plausible private IPs for display purposes.
+    src_ip = f"192.168.10.{random.randint(1, 254)}"
+    dst_ip = f"10.0.0.{random.randint(1, 254)}"
+    src_port = int(feature_dict.get("Src Port", 0))
+    dst_port = int(feature_dict.get("Dst Port", 0))
+    flow_id = f"{src_ip}-{dst_ip}-6-{src_port}-{dst_port}"
+
+    payload = {"features": feature_dict, "flow_id": flow_id}
     try:
         resp = requests.post(f"{api_url}/predict", json=payload, timeout=10)
         if resp.status_code == 200:

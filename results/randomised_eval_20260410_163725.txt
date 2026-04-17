@@ -1,0 +1,50 @@
+NIDS Randomised Evaluation Report
+============================================================
+Date:           2026-04-10 16:37:25
+Runs:           10
+Samples/class:  20
+
+Overall Accuracy: 93.5% +/- 1.0%
+95% CI:           [92.9%, 94.1%]
+
+Attack Type                           Mean Acc      Std    N/run
+-----------------------------------------------------------------
+BENIGN                                  100.0%     0.0%     20
+Botnet                                  100.0%     0.0%     20
+DDoS                                    100.0%     0.0%     20
+DoS GoldenEye                           100.0%     0.0%     20
+DoS Hulk                                100.0%     0.0%     20
+DoS Slowhttptest                         99.5%     1.6%     20
+DoS Slowloris                           100.0%     0.0%     20
+FTP-Patator                             100.0%     0.0%     20
+Heartbleed                               90.9%     0.0%     11*
+Infiltration                             86.0%     7.4%     20
+Infiltration - Portscan                  91.5%     6.3%     20
+Portscan                                 96.5%     4.1%     20
+SSH-Patator                             100.0%     0.0%     20
+Web Attack - Brute Force                 80.0%    12.9%     20
+Web Attack - SQL Injection               83.3%     0.0%     18*
+Web Attack - XSS                         66.5%    10.0%     20
+
+Top Confusion Patterns:
+  Web Attack - XSS -> Web Attack - Brute Force       (64 times)
+  Web Attack - Brute Force -> Web Attack - XSS               (40 times)
+  Web Attack - SQL Injection -> BENIGN                         (30 times)
+  Infiltration -> BENIGN                         (28 times)
+  Infiltration - Portscan -> Portscan                       (17 times)
+  Heartbleed -> BENIGN                         (10 times)
+  Portscan -> Infiltration - Portscan        (7 times)
+  Web Attack - XSS -> BENIGN                         (3 times)
+  DoS Slowhttptest -> BENIGN                         (1 times)
+
+Per-run overall accuracy:
+  Run 1: 92.2%
+  Run 2: 93.2%
+  Run 3: 93.5%
+  Run 4: 94.8%
+  Run 5: 94.2%
+  Run 6: 93.2%
+  Run 7: 95.1%
+  Run 8: 93.5%
+  Run 9: 93.2%
+  Run 10: 92.2%

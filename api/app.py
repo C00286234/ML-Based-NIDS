@@ -10,6 +10,10 @@ Author: FYP-NIDS-ML Project
 import os
 import sys
 import logging
+import asyncio
+import uuid
+import json
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from collections import defaultdict, deque
@@ -20,6 +24,7 @@ import pandas as pd
 import joblib
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 # Local imports for security features
@@ -35,6 +40,7 @@ if SLOWAPI_AVAILABLE:
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
+from src.alerting import ATTACK_SEVERITY
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 LOGS_DIR = os.path.join(BASE_DIR, "api", "logs")
 
@@ -157,6 +163,72 @@ class ModelState:
         self.prediction_times: deque = deque(maxlen=1000)
 
 state = ModelState()
+
+
+@dataclass
+class DetectionRecord:
+    """A single detection result for the live feed."""
+    id: str
+    timestamp: str
+    flow_id: str
+    src_ip: str
+    dst_ip: str
+    prediction: str
+    confidence: float
+    is_attack: bool
+    severity: str
+    model_agreement: bool
+    top_features: list
+    probabilities: dict
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "flow_id": self.flow_id,
+            "src_ip": self.src_ip,
+            "dst_ip": self.dst_ip,
+            "prediction": self.prediction,
+            "confidence": self.confidence,
+            "is_attack": self.is_attack,
+            "severity": self.severity,
+            "model_agreement": self.model_agreement,
+            "top_features": [
+                {"feature": f.feature, "value": f.value, "contribution": f.contribution}
+                if hasattr(f, "feature") else f
+                for f in self.top_features
+            ],
+            "probabilities": self.probabilities,
+        }
+
+
+# Ring buffer for recent detections + SSE pub/sub
+_recent_detections: deque = deque(maxlen=200)
+_sse_subscribers: set = set()
+
+
+def _parse_flow_ips(flow_id: Optional[str]) -> tuple:
+    """Extract src_ip and dst_ip from a flow_id string like '192.168.1.1-10.0.0.5-6-443-80'."""
+    if not flow_id:
+        return ("—", "—")
+    parts = flow_id.split("-")
+    if len(parts) >= 2:
+        return (parts[0], parts[1])
+    return ("—", "—")
+
+
+def _publish_detection(record: DetectionRecord):
+    """Append to ring buffer and fan out to all SSE subscribers."""
+    _recent_detections.appendleft(record)
+    dead = []
+    for q in _sse_subscribers:
+        try:
+            q.put_nowait(record)
+        except asyncio.QueueFull:
+            dead.append(q)
+    for q in dead:
+        _sse_subscribers.discard(q)
+
 
 # ============================================================================
 # PYDANTIC MODELS
@@ -344,11 +416,6 @@ async def lifespan(app: FastAPI):
     if PROMETHEUS_AVAILABLE and MODELS_LOADED:
         MODELS_LOADED.set(1 if state.rf_model is not None else 0)
 
-    # Initialize Prometheus instrumentator
-    if PROMETHEUS_AVAILABLE and instrumentator:
-        instrumentator.instrument(app).expose(app, endpoint="/metrics")
-        logger.info("Prometheus metrics exposed at /metrics")
-
     yield
     unload_models()
 
@@ -443,6 +510,12 @@ try:
 
     PROMETHEUS_AVAILABLE = True
     logger.info("Prometheus metrics enabled")
+
+    # Register instrumentation and /metrics route BEFORE the app starts.
+    # Starlette forbids adding middleware after startup, so this must run at
+    # import time — not inside lifespan().
+    instrumentator.instrument(app).expose(app, endpoint="/metrics")
+    logger.info("Prometheus metrics exposed at /metrics")
 
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -593,7 +666,9 @@ async def root():
             "POST /predict": "Single flow prediction with SHAP explanation",
             "POST /batch_predict": "Batch prediction for multiple flows",
             "GET /docs": "Interactive API documentation (Swagger UI)",
-            "GET /redoc": "Alternative API documentation (ReDoc)"
+            "GET /redoc": "Alternative API documentation (ReDoc)",
+            "GET /api/recent": "Recent detections from live feed (supports ?limit=&severity=)",
+            "GET /api/stream": "SSE stream of live detections"
         },
         "attack_classes": list(state.label_encoder.classes_) if state.label_encoder else [],
         "model": "Random Forest (99.4% accuracy)"
@@ -747,6 +822,24 @@ async def predict(
 
         # Log prediction
         log_prediction(prediction_label, confidence, is_attack, flow_id=flow.flow_id)
+
+        # Publish to live feed
+        src_ip, dst_ip = _parse_flow_ips(flow.flow_id)
+        detection = DetectionRecord(
+            id=str(uuid.uuid4()),
+            timestamp=datetime.now().isoformat(),
+            flow_id=flow.flow_id or "",
+            src_ip=src_ip,
+            dst_ip=dst_ip,
+            prediction=prediction_label,
+            confidence=confidence,
+            is_attack=is_attack,
+            severity=ATTACK_SEVERITY.get(prediction_label, "medium"),
+            model_agreement=model_agreement,
+            top_features=top_features,
+            probabilities=prob_dict,
+        )
+        _publish_detection(detection)
 
         return PredictionResponse(
             prediction=prediction_label,
@@ -918,6 +1011,50 @@ async def get_security_status():
             "endpoint": "/metrics" if PROMETHEUS_AVAILABLE else None,
         },
     }
+
+
+@app.get("/api/recent", tags=["Live Feed"])
+async def get_recent_detections(
+    limit: int = 50,
+    severity: Optional[str] = None,
+):
+    """Return recent detections from the ring buffer."""
+    limit = min(max(limit, 1), 200)
+    records = list(_recent_detections)  # already newest-first
+    if severity:
+        severity = severity.lower()
+        records = [r for r in records if r.severity == severity]
+    return [r.to_dict() for r in records[:limit]]
+
+
+@app.get("/api/stream", tags=["Live Feed"])
+async def stream_detections():
+    """SSE endpoint. Streams DetectionRecords as they arrive."""
+    q: asyncio.Queue = asyncio.Queue(maxsize=256)
+    _sse_subscribers.add(q)
+
+    async def event_generator():
+        try:
+            while True:
+                try:
+                    record = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {json.dumps(record.to_dict())}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            _sse_subscribers.discard(q)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ============================================================================

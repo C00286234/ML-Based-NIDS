@@ -122,7 +122,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "sum(nids_attacks_detected_total) / sum(nids_predictions_total) * 100",
+          "expr": "sum(rate(nids_attacks_detected_total[5m])) / sum(rate(nids_predictions_total[5m])) * 100",
           "legendFormat": "",
           "refId": "A"
         }
@@ -161,7 +161,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "histogram_quantile(0.50, sum(rate(nids_prediction_latency_seconds_bucket[5m])) by (le)) * 1000",
+          "expr": "(sum(rate(nids_prediction_latency_seconds_sum[5m])) / sum(rate(nids_prediction_latency_seconds_count[5m]))) * 1000",
           "legendFormat": "",
           "refId": "A"
         }
@@ -462,7 +462,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-          "expr": "process_uptime_seconds{job=\"nids-api\"}",
+          "expr": "time() - process_start_time_seconds{job=\"nids-api\"}",
           "legendFormat": "",
           "refId": "A"
         }

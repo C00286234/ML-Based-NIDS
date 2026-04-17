@@ -25,7 +25,7 @@ import secrets
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, Response
 import requests
 
 # ==============================================================================
@@ -219,6 +219,49 @@ def recent_attacks():
         "attacks": attacks,
         "total": metrics.get("total_attacks", 0)
     })
+
+
+@app.route("/api/recent_detections")
+def recent_detections():
+    """Proxy to the API's /api/recent endpoint."""
+    limit = request.args.get("limit", "50")
+    severity = request.args.get("severity", "")
+    params = f"?limit={limit}"
+    if severity:
+        params += f"&severity={severity}"
+    data = fetch_api(f"/api/recent{params}")
+    if data is None:
+        return jsonify([])
+    return jsonify(data)
+
+
+@app.route("/api/stream")
+def stream_proxy():
+    """Proxy the SSE stream from the API to the browser."""
+    def generate():
+        try:
+            with requests.get(
+                f"{API_URL}/api/stream",
+                headers=get_api_headers(),
+                stream=True,
+                timeout=(5, None),
+            ) as upstream:
+                for line in upstream.iter_lines(decode_unicode=True):
+                    if line is not None:
+                        yield f"{line}\n"
+                    else:
+                        yield "\n"
+        except requests.exceptions.ConnectionError:
+            yield "data: {\"error\": \"API disconnected\"}\n\n"
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.route("/health")

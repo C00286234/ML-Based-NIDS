@@ -1,0 +1,161 @@
+run,label,correct,total,accuracy
+1,BENIGN,20,20,100.0
+2,BENIGN,20,20,100.0
+3,BENIGN,20,20,100.0
+4,BENIGN,20,20,100.0
+5,BENIGN,20,20,100.0
+6,BENIGN,20,20,100.0
+7,BENIGN,20,20,100.0
+8,BENIGN,20,20,100.0
+9,BENIGN,20,20,100.0
+10,BENIGN,20,20,100.0
+1,Botnet,20,20,100.0
+2,Botnet,20,20,100.0
+3,Botnet,20,20,100.0
+4,Botnet,20,20,100.0
+5,Botnet,20,20,100.0
+6,Botnet,20,20,100.0
+7,Botnet,20,20,100.0
+8,Botnet,20,20,100.0
+9,Botnet,20,20,100.0
+10,Botnet,20,20,100.0
+1,DDoS,20,20,100.0
+2,DDoS,20,20,100.0
+3,DDoS,20,20,100.0
+4,DDoS,20,20,100.0
+5,DDoS,20,20,100.0
+6,DDoS,20,20,100.0
+7,DDoS,20,20,100.0
+8,DDoS,20,20,100.0
+9,DDoS,20,20,100.0
+10,DDoS,20,20,100.0
+1,DoS GoldenEye,20,20,100.0
+2,DoS GoldenEye,20,20,100.0
+3,DoS GoldenEye,20,20,100.0
+4,DoS GoldenEye,20,20,100.0
+5,DoS GoldenEye,20,20,100.0
+6,DoS GoldenEye,20,20,100.0
+7,DoS GoldenEye,20,20,100.0
+8,DoS GoldenEye,20,20,100.0
+9,DoS GoldenEye,20,20,100.0
+10,DoS GoldenEye,20,20,100.0
+1,DoS Hulk,20,20,100.0
+2,DoS Hulk,20,20,100.0
+3,DoS Hulk,20,20,100.0
+4,DoS Hulk,20,20,100.0
+5,DoS Hulk,20,20,100.0
+6,DoS Hulk,20,20,100.0
+7,DoS Hulk,20,20,100.0
+8,DoS Hulk,20,20,100.0
+9,DoS Hulk,20,20,100.0
+10,DoS Hulk,20,20,100.0
+1,DoS Slowhttptest,20,20,100.0
+2,DoS Slowhttptest,20,20,100.0
+3,DoS Slowhttptest,20,20,100.0
+4,DoS Slowhttptest,20,20,100.0
+5,DoS Slowhttptest,20,20,100.0
+6,DoS Slowhttptest,20,20,100.0
+7,DoS Slowhttptest,19,20,95.0
+8,DoS Slowhttptest,20,20,100.0
+9,DoS Slowhttptest,20,20,100.0
+10,DoS Slowhttptest,20,20,100.0
+1,DoS Slowloris,20,20,100.0
+2,DoS Slowloris,20,20,100.0
+3,DoS Slowloris,20,20,100.0
+4,DoS Slowloris,20,20,100.0
+5,DoS Slowloris,20,20,100.0
+6,DoS Slowloris,20,20,100.0
+7,DoS Slowloris,20,20,100.0
+8,DoS Slowloris,20,20,100.0
+9,DoS Slowloris,20,20,100.0
+10,DoS Slowloris,20,20,100.0
+1,FTP-Patator,20,20,100.0
+2,FTP-Patator,20,20,100.0
+3,FTP-Patator,20,20,100.0
+4,FTP-Patator,20,20,100.0
+5,FTP-Patator,20,20,100.0
+6,FTP-Patator,20,20,100.0
+7,FTP-Patator,20,20,100.0
+8,FTP-Patator,20,20,100.0
+9,FTP-Patator,20,20,100.0
+10,FTP-Patator,20,20,100.0
+1,Heartbleed,10,11,90.9
+2,Heartbleed,10,11,90.9
+3,Heartbleed,10,11,90.9
+4,Heartbleed,10,11,90.9
+5,Heartbleed,10,11,90.9
+6,Heartbleed,10,11,90.9
+7,Heartbleed,10,11,90.9
+8,Heartbleed,10,11,90.9
+9,Heartbleed,10,11,90.9
+10,Heartbleed,10,11,90.9
+1,Infiltration,16,20,80.0
+2,Infiltration,17,20,85.0
+3,Infiltration,19,20,95.0
+4,Infiltration,15,20,75.0
+5,Infiltration,19,20,95.0
+6,Infiltration,17,20,85.0
+7,Infiltration,18,20,90.0
+8,Infiltration,19,20,95.0
+9,Infiltration,16,20,80.0
+10,Infiltration,16,20,80.0
+1,Infiltration - Portscan,16,20,80.0
+2,Infiltration - Portscan,19,20,95.0
+3,Infiltration - Portscan,20,20,100.0
+4,Infiltration - Portscan,18,20,90.0
+5,Infiltration - Portscan,18,20,90.0
+6,Infiltration - Portscan,18,20,90.0
+7,Infiltration - Portscan,20,20,100.0
+8,Infiltration - Portscan,18,20,90.0
+9,Infiltration - Portscan,19,20,95.0
+10,Infiltration - Portscan,17,20,85.0
+1,Portscan,20,20,100.0
+2,Portscan,18,20,90.0
+3,Portscan,19,20,95.0
+4,Portscan,19,20,95.0
+5,Portscan,18,20,90.0
+6,Portscan,20,20,100.0
+7,Portscan,20,20,100.0
+8,Portscan,20,20,100.0
+9,Portscan,19,20,95.0
+10,Portscan,20,20,100.0
+1,SSH-Patator,20,20,100.0
+2,SSH-Patator,20,20,100.0
+3,SSH-Patator,20,20,100.0
+4,SSH-Patator,20,20,100.0
+5,SSH-Patator,20,20,100.0
+6,SSH-Patator,20,20,100.0
+7,SSH-Patator,20,20,100.0
+8,SSH-Patator,20,20,100.0
+9,SSH-Patator,20,20,100.0
+10,SSH-Patator,20,20,100.0
+1,Web Attack - Brute Force,14,20,70.0
+2,Web Attack - Brute Force,18,20,90.0
+3,Web Attack - Brute Force,15,20,75.0
+4,Web Attack - Brute Force,19,20,95.0
+5,Web Attack - Brute Force,19,20,95.0
+6,Web Attack - Brute Force,16,20,80.0
+7,Web Attack - Brute Force,18,20,90.0
+8,Web Attack - Brute Force,14,20,70.0
+9,Web Attack - Brute Force,16,20,80.0
+10,Web Attack - Brute Force,11,20,55.0
+1,Web Attack - SQL Injection,15,18,83.3
+2,Web Attack - SQL Injection,15,18,83.3
+3,Web Attack - SQL Injection,15,18,83.3
+4,Web Attack - SQL Injection,15,18,83.3
+5,Web Attack - SQL Injection,15,18,83.3
+6,Web Attack - SQL Injection,15,18,83.3
+7,Web Attack - SQL Injection,15,18,83.3
+8,Web Attack - SQL Injection,15,18,83.3
+9,Web Attack - SQL Injection,15,18,83.3
+10,Web Attack - SQL Injection,15,18,83.3
+1,Web Attack - XSS,14,20,70.0
+2,Web Attack - XSS,11,20,55.0
+3,Web Attack - XSS,11,20,55.0
+4,Web Attack - XSS,17,20,85.0
+5,Web Attack - XSS,12,20,60.0
+6,Web Attack - XSS,12,20,60.0
+7,Web Attack - XSS,14,20,70.0
+8,Web Attack - XSS,13,20,65.0
+9,Web Attack - XSS,13,20,65.0
+10,Web Attack - XSS,16,20,80.0

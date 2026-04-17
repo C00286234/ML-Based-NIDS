@@ -5,24 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NIDS Dashboard - Network Intrusion Detection System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Chart.js for visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <header class="header">
             <div class="header-content">
                 <h1>NIDS Dashboard</h1>
                 <p class="subtitle">Network Intrusion Detection System - Real-Time Monitoring</p>
             </div>
-            <div class="connection-status" id="connection-status">
-                <span class="status-dot"></span>
-                <span class="status-text">Connecting...</span>
+            <div class="header-right">
+                <button class="notify-btn hidden" id="notify-btn" title="Enable browser notifications">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 01-3.46 0"/>
+                    </svg>
+                    Enable Alerts
+                </button>
+                <div class="connection-status" id="connection-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
             </div>
         </header>
 
-        <!-- Main Stats Grid -->
         <section class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon predictions">
@@ -36,7 +42,6 @@
                     <p class="stat-subtitle">All time</p>
                 </div>
             </div>
-
             <div class="stat-card">
                 <div class="stat-icon attacks">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,7 +56,6 @@
                     <p class="stat-subtitle" id="attack-rate">0% attack rate</p>
                 </div>
             </div>
-
             <div class="stat-card">
                 <div class="stat-icon latency">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -65,7 +69,6 @@
                     <p class="stat-subtitle">Per prediction</p>
                 </div>
             </div>
-
             <div class="stat-card">
                 <div class="stat-icon uptime">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -80,231 +83,70 @@
             </div>
         </section>
 
-        <!-- Charts Section -->
-        <section class="charts-section">
-            <div class="chart-card">
-                <h3>Attack Distribution</h3>
+        <section class="panel" id="timeline-panel">
+            <h3 class="panel-title">Traffic Timeline <span class="panel-subtitle">last 10 minutes</span></h3>
+            <div class="timeline-chart-container">
+                <canvas id="timeline-chart"></canvas>
+            </div>
+        </section>
+
+        <section class="panel" id="feed-panel">
+            <div class="feed-header">
+                <h3 class="panel-title">Live Detection Feed</h3>
+                <button class="new-detections-pill hidden" id="new-pill">
+                    <span id="new-pill-count">0</span> new detections &#8593;
+                </button>
+            </div>
+            <div class="sse-banner hidden" id="sse-banner">Disconnected, retrying&hellip;</div>
+            <div class="feed-list" id="feed-list">
+                <p class="no-data" id="feed-empty">Waiting for detections&hellip;</p>
+            </div>
+        </section>
+
+        <section class="three-across">
+            <div class="panel">
+                <h3 class="panel-title">Attack Distribution</h3>
                 <div class="chart-container">
                     <canvas id="attack-chart"></canvas>
                 </div>
             </div>
-
-            <div class="chart-card">
-                <h3>Attack Types Summary</h3>
-                <div class="attack-list" id="attack-list">
-                    <p class="no-data">No attacks detected yet</p>
+            <div class="panel">
+                <h3 class="panel-title">Severity Breakdown</h3>
+                <div class="severity-bars" id="severity-bars">
+                    <p class="no-data">No data yet</p>
+                </div>
+            </div>
+            <div class="panel">
+                <h3 class="panel-title">Top Talkers</h3>
+                <div class="top-talkers" id="top-talkers">
+                    <p class="no-data">No data yet</p>
                 </div>
             </div>
         </section>
 
-        <!-- System Status -->
-        <section class="status-section">
-            <div class="status-card">
-                <h3>System Status</h3>
-                <div class="status-grid">
-                    <div class="status-item">
-                        <span class="status-label">API Status</span>
-                        <span class="status-badge" id="api-status">Unknown</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Models Loaded</span>
-                        <span class="status-badge" id="models-status">Unknown</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Authentication</span>
-                        <span class="status-badge" id="auth-status">Unknown</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Rate Limiting</span>
-                        <span class="status-badge" id="rate-limit-status">Unknown</span>
-                    </div>
-                </div>
+        <section class="status-bar" id="status-bar">
+            <div class="status-bar-item">
+                <span class="status-bar-dot" id="sb-api"></span>
+                API <span id="sb-api-label">...</span>
             </div>
-
-            <div class="status-card">
-                <h3>Configuration</h3>
-                <div class="config-info">
-                    <p><strong>API URL:</strong> <code id="api-url">{{ api_url }}</code></p>
-                    <p><strong>Refresh Interval:</strong> <code>{{ refresh_interval }} seconds</code></p>
-                    <p><strong>Last Updated:</strong> <code id="last-updated">Never</code></p>
-                </div>
+            <div class="status-bar-item">
+                <span class="status-bar-dot" id="sb-models"></span>
+                Models <span id="sb-models-label">...</span>
+            </div>
+            <div class="status-bar-item">
+                <span class="status-bar-dot" id="sb-sse"></span>
+                SSE <span id="sb-sse-label">...</span>
+            </div>
+            <div class="status-bar-item">
+                Uptime <span id="sb-uptime">&mdash;</span>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="footer">
-            <p>NIDS Dashboard v1.0.0 | FYP-NIDS-ML Project</p>
-            <p>Auto-refresh: <span id="countdown">{{ refresh_interval }}</span>s</p>
+            <p>NIDS Dashboard v2.0.0 | FYP-NIDS-ML Project</p>
         </footer>
     </div>
 
-    <script>
-        // Configuration
-        const REFRESH_INTERVAL = {{ refresh_interval }} * 1000;
-        let attackChart = null;
-        let countdown = {{ refresh_interval }};
-
-        // Format numbers with commas
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-
-        // Format uptime
-        function formatUptime(seconds) {
-            if (seconds < 60) return `${Math.floor(seconds)}s`;
-            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
-            const hours = Math.floor(seconds / 3600);
-            const mins = Math.floor((seconds % 3600) / 60);
-            return `${hours}h ${mins}m`;
-        }
-
-        // Update connection status
-        function updateConnectionStatus(connected) {
-            const statusEl = document.getElementById('connection-status');
-            const dotEl = statusEl.querySelector('.status-dot');
-            const textEl = statusEl.querySelector('.status-text');
-
-            if (connected) {
-                dotEl.classList.remove('disconnected');
-                dotEl.classList.add('connected');
-                textEl.textContent = 'Connected';
-            } else {
-                dotEl.classList.remove('connected');
-                dotEl.classList.add('disconnected');
-                textEl.textContent = 'Disconnected';
-            }
-        }
-
-        // Update stats
-        function updateStats(data) {
-            document.getElementById('total-predictions').textContent = formatNumber(data.metrics.total_predictions);
-            document.getElementById('total-attacks').textContent = formatNumber(data.metrics.total_attacks);
-            document.getElementById('attack-rate').textContent = `${data.attack_rate_percent}% attack rate`;
-            document.getElementById('avg-latency').textContent = `${data.metrics.avg_prediction_time_ms.toFixed(1)}ms`;
-            document.getElementById('uptime').textContent = formatUptime(data.metrics.uptime_seconds);
-            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
-
-            // Update status badges
-            const apiStatus = document.getElementById('api-status');
-            apiStatus.textContent = data.health.status || 'Unknown';
-            apiStatus.className = `status-badge ${data.health.status === 'healthy' ? 'success' : 'warning'}`;
-
-            const modelsStatus = document.getElementById('models-status');
-            modelsStatus.textContent = data.health.models_loaded ? 'Loaded' : 'Not Loaded';
-            modelsStatus.className = `status-badge ${data.health.models_loaded ? 'success' : 'error'}`;
-
-            const authStatus = document.getElementById('auth-status');
-            const authEnabled = data.security?.authentication?.auth_enabled;
-            authStatus.textContent = authEnabled ? 'Enabled' : 'Disabled';
-            authStatus.className = `status-badge ${authEnabled ? 'success' : 'neutral'}`;
-
-            const rateLimitStatus = document.getElementById('rate-limit-status');
-            const rlEnabled = data.security?.rate_limiting?.enabled;
-            rateLimitStatus.textContent = rlEnabled ? 'Enabled' : 'Disabled';
-            rateLimitStatus.className = `status-badge ${rlEnabled ? 'success' : 'neutral'}`;
-        }
-
-        // Update attack chart
-        function updateChart(chartData) {
-            const ctx = document.getElementById('attack-chart').getContext('2d');
-
-            if (attackChart) {
-                attackChart.data.labels = chartData.labels;
-                attackChart.data.datasets[0].data = chartData.values;
-                attackChart.data.datasets[0].backgroundColor = chartData.colors;
-                attackChart.update();
-            } else {
-                attackChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: chartData.labels,
-                        datasets: [{
-                            data: chartData.values,
-                            backgroundColor: chartData.colors,
-                            borderWidth: 2,
-                            borderColor: '#1e1e2e'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                labels: {
-                                    color: '#cdd6f4',
-                                    font: { size: 12 }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        // Update attack list
-        function updateAttackList(data) {
-            const listEl = document.getElementById('attack-list');
-
-            if (!data.attacks || data.attacks.length === 0) {
-                listEl.innerHTML = '<p class="no-data">No attacks detected yet</p>';
-                return;
-            }
-
-            let html = '';
-            data.attacks.slice(0, 10).forEach(attack => {
-                html += `
-                    <div class="attack-item">
-                        <span class="attack-name">${attack.type}</span>
-                        <span class="attack-count">${formatNumber(attack.count)}</span>
-                        <span class="attack-percent">${attack.percentage}%</span>
-                    </div>
-                `;
-            });
-
-            listEl.innerHTML = html;
-        }
-
-        // Fetch all data
-        async function fetchData() {
-            try {
-                const [statusRes, chartRes, attacksRes] = await Promise.all([
-                    fetch('/api/status'),
-                    fetch('/api/attack_distribution'),
-                    fetch('/api/recent_attacks')
-                ]);
-
-                const status = await statusRes.json();
-                const chartData = await chartRes.json();
-                const attacks = await attacksRes.json();
-
-                updateConnectionStatus(status.connected);
-                updateStats(status);
-                updateChart(chartData);
-                updateAttackList(attacks);
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                updateConnectionStatus(false);
-            }
-        }
-
-        // Countdown timer
-        function updateCountdown() {
-            countdown--;
-            document.getElementById('countdown').textContent = countdown;
-
-            if (countdown <= 0) {
-                countdown = {{ refresh_interval }};
-                fetchData();
-            }
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchData();
-            setInterval(updateCountdown, 1000);
-        });
-    </script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

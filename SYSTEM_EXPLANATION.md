@@ -422,3 +422,286 @@ performance:
 The two values most relevant to your testing:
 - **`flow.timeout`**: Lower = faster predictions, but short-lived flows may not accumulate enough packets for accurate classification
 - **`alerts.confidence_threshold`**: Higher = fewer false positives, but may miss low-confidence real attacks
+
+---
+
+## Features
+
+- **ML Classification** — Random Forest + XGBoost ensemble detecting 15 attack types
+- **Real-Time Detection** — Live packet capture via Scapy, 5-tuple flow aggregation, and 84-feature extraction
+- **Explainability** — SHAP and LIME explanations for every prediction (top 5 contributing features)
+- **REST API** — FastAPI with Swagger docs, batch prediction, rate limiting, and optional API key auth
+- **Alerting** — Email (Gmail/Outlook SMTP) and Slack webhook notifications with configurable severity thresholds and cooldown periods
+- **Session Logging** — Timestamped session directories with separate engine, prediction, attack, and summary logs per run
+- **One-Command Launch** — `run_nids.py` starts both the API server and NIDS engine together
+- **Monitoring** — Prometheus metrics + pre-built Grafana dashboard (latency, attack trends, model health)
+- **Flask Dashboard** — Lightweight real-time status page with auto-refresh and attack distribution charts
+- **Benchmarking & Evaluation** — Performance benchmarks (latency/throughput) and randomised accuracy testing with confidence intervals
+- **Docker Support** — Single `docker-compose up` deploys the full stack (API + Prometheus + Grafana)
+
+---
+
+## Project Structure
+
+```
+FYP-NIDS-ML/
+├── api/                            # FastAPI prediction service
+│   ├── app.py                      # Main API (endpoints, model loading, SHAP)
+│   ├── auth.py                     # API key authentication
+│   ├── rate_limit.py               # Rate limiting middleware
+│   ├── test_client.py              # API test suite
+│   └── requirements.txt
+│
+├── src/                            # Real-time NIDS engine
+│   ├── nids_engine.py              # Main orchestrator (session logging)
+│   ├── packet_capture.py           # Scapy packet capture
+│   ├── flow_aggregator.py          # 5-tuple flow aggregation
+│   ├── feature_extractor.py        # 84-feature extraction
+│   ├── alerting.py                 # Email + Slack alert management
+│   ├── constants.py                # Shared feature name definitions
+│   └── requirements.txt
+│
+├── testing/                        # Kali Linux attack testing suite
+│   ├── vulnerable_webapp.py        # Intentionally vulnerable Flask app
+│   ├── setup_services.py           # FTP/SSH test service setup
+│   ├── run_kali_tests.py           # Automated Kali attack runner
+│   ├── parse_kali_results.py       # Results parser
+│   └── verify_interface.py         # Network interface checker
+│
+├── dashboard/                      # Flask monitoring UI
+│   ├── app.py                      # Dashboard routes
+│   ├── templates/index.html        # Web interface
+│   └── static/style.css            # Dark theme (Catppuccin Mocha)
+│
+├── monitoring/                     # Prometheus + Grafana configs
+│   ├── prometheus/prometheus.yml
+│   └── grafana/
+│       ├── provisioning/           # Auto-configure datasource
+│       └── dashboards/             # Pre-built NIDS dashboard
+│
+├── figures/                        # Generated visualisations
+│   ├── shap/                       # SHAP explanations
+│   └── lime/                       # LIME explanations
+│
+├── results/                        # Evaluation & benchmark results (CSV/TXT)
+├── config/nids_config.yaml         # NIDS engine configuration
+│
+├── 02_data_preprocessing.py        # Cleaning & label consolidation
+├── 03_feature_engineering.py       # Feature scaling & selection
+├── 04_model_training_improved.py   # RF + XGBoost training pipeline
+│
+├── run_nids.py                     # One-command launcher (API + engine)
+├── demo_traffic_simulator.py       # Interactive demo (replays CIC-IDS2017 flows)
+├── benchmark_suite.py              # Performance benchmarks
+├── randomised_evaluation.py        # Randomised accuracy evaluation
+├── test_attack_detection.py        # Attack detection validation
+│
+├── Dockerfile                      # Multi-stage API container
+├── docker-compose.yml              # Full stack orchestration
+└── .dockerignore
+```
+
+---
+
+## API Reference
+
+| Method | Endpoint | Description | Rate Limit |
+|---|---|---|---|
+| `GET` | `/` | Welcome message + endpoint list | — |
+| `GET` | `/health` | Health check (model status, uptime) | — |
+| `GET` | `/stats` | Usage statistics (predictions, attack distribution) | — |
+| `GET` | `/metrics` | Prometheus metrics (text format) | — |
+| `GET` | `/features` | List of 84 required feature names | — |
+| `GET` | `/classes` | List of 16 classes (15 attacks + BENIGN) | — |
+| `POST` | `/predict` | Single flow prediction + SHAP explanation | 60/min |
+| `POST` | `/batch_predict` | Batch prediction (up to 1000 flows) | 30/min |
+| `GET` | `/docs` | Interactive Swagger documentation | — |
+
+---
+
+## Model Performance
+
+Evaluated on a held-out test set (311,746 flows):
+
+| Metric | XGBoost | Random Forest |
+|---|---|---|
+| Accuracy | 99.44% | 99.40% |
+| F1 (macro) | 0.8337 | 0.8732 |
+| Precision (macro) | 0.8780 | 0.8753 |
+| Recall (macro) | 0.8123 | 0.8771 |
+
+Randomised evaluation with balanced class sampling (3 runs, 10 samples/class):
+
+| Metric | Value |
+|---|---|
+| Overall Accuracy | 91.9% ± 1.2% |
+| 95% Confidence Interval | [90.5%, 93.3%] |
+
+### Confusion Matrices
+
+<p align="center">
+  <img src="figures/xgboost_confusion_matrix_v2.png" alt="XGBoost Confusion Matrix" width="45%">
+  <img src="figures/rf_confusion_matrix.png" alt="Random Forest Confusion Matrix" width="45%">
+</p>
+
+### Feature Importance (SHAP)
+
+<p align="center">
+  <img src="figures/shap/global_importance.png" alt="SHAP Global Feature Importance" width="70%">
+</p>
+
+### Known Limitations
+
+The model underperforms on two classes due to limited training samples in CIC-IDS2017:
+
+| Class | Accuracy (randomised eval) | Dataset Samples |
+|---|---|---|
+| Web Attack - XSS | 53.3% | 652 |
+| Web Attack - Brute Force | 76.7% | 1,507 |
+
+All other classes achieve accuracy above 80%, with most reaching 100% in randomised evaluation. The weak performance on web attack classes is a dataset-imbalance problem rather than a modelling issue — these two classes are severely underrepresented in CIC-IDS2017 and there is insufficient data for the model to learn their full diversity.
+
+An additional limitation affects live detection: the model was trained on flow features computed by CICFlowMeter from captured PCAPs, while the live engine extracts features directly from Scapy captures. Subtle differences in flow boundaries, timing precision, and feature computation create a distribution shift that causes the model to misclassify live attack traffic even when it correctly classifies replayed dataset flows.
+
+---
+
+## Monitoring
+
+### Flask Dashboard (port 5001)
+
+Real-time status page showing current attack counts, system health, and attack distribution. Auto-refreshes every 5 seconds.
+
+### Grafana (port 3000)
+
+Pre-built dashboard with 11 panels:
+- **Overview** — Total predictions, attacks detected, attack rate %, avg latency
+- **Traffic Over Time** — Predictions and attacks as time-series graphs
+- **Performance** — Latency percentiles (p50/p95/p99), API request rate
+- **Breakdown** — Attack type distribution (pie chart), model status, top attack types
+
+### Prometheus (port 9090)
+
+Scrapes the API every 15 seconds. Key metrics:
+- `nids_predictions_total` — Total predictions (by class)
+- `nids_attacks_detected_total` — Attacks detected (by type)
+- `nids_prediction_latency_seconds` — Prediction latency histogram
+- `nids_models_loaded` — Model load status gauge
+
+---
+
+## Alerting
+
+The NIDS engine sends real-time alerts when attacks are detected, configurable via `config/nids_config.yaml`.
+
+### Email (SMTP)
+
+Supports Gmail, Outlook, and custom SMTP servers with HTML-formatted alert emails.
+
+```yaml
+alerting:
+  email:
+    enabled: true
+    smtp_server: smtp.gmail.com
+    smtp_port: 587
+    sender: nids-alerts@example.com
+    password: ${NIDS_EMAIL_PASSWORD}
+    recipients:
+      - security-team@example.com
+    min_confidence: 0.9
+    cooldown_minutes: 5
+    severity_threshold: medium
+```
+
+### Slack (Webhook)
+
+Posts attack alerts to a Slack channel via incoming webhook.
+
+```yaml
+alerting:
+  slack:
+    enabled: true
+    webhook_url: ${NIDS_SLACK_WEBHOOK}
+    channel: "#nids-alerts"
+    min_confidence: 0.8
+    cooldown_minutes: 2
+    severity_threshold: medium
+```
+
+Alerts include attack type, severity level, confidence score, source/destination IPs, and top contributing features. Cooldown periods prevent alert flooding during sustained attacks.
+
+---
+
+## Testing & Evaluation
+
+### Benchmark Suite
+
+Measures system performance under load:
+
+```bash
+python benchmark_suite.py
+```
+
+Reports latency percentiles (p50/p95/p99), single-prediction vs batch throughput, and concurrent request handling. Results are saved to `results/`.
+
+### Randomised Evaluation
+
+Runs attack detection tests with different random seeds and larger samples to produce statistically robust results:
+
+```bash
+python randomised_evaluation.py
+```
+
+Outputs mean accuracy with standard deviation and 95% confidence intervals across multiple runs.
+
+### Attack Detection Validation
+
+Tests the API against known attack samples from the CIC-IDS2017 dataset:
+
+```bash
+python test_attack_detection.py
+```
+
+Reports per-class accuracy, precision, recall, and overall detection rates.
+
+### Kali Linux Live Testing
+
+The `testing/` directory contains tools for generating real attack traffic against the NIDS using Kali Linux:
+
+- `vulnerable_webapp.py` — Intentionally vulnerable Flask app (SQL injection, XSS, brute-force targets)
+- `setup_services.py` — Sets up FTP/SSH services for brute-force testing
+- `run_kali_tests.py` — Automated attack runner using Hydra, Nmap, and Slowloris
+- `parse_kali_results.py` — Parses Kali tool output into structured results
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `NIDS_LOG_LEVEL` | `INFO` | Logging level |
+| `NIDS_REQUIRE_AUTH` | `false` | Enable API key authentication |
+| `NIDS_API_KEY` | — | API key (if auth enabled) |
+| `NIDS_RATE_LIMIT` | `100/minute` | Global rate limit |
+| `NIDS_PREDICT_RATE_LIMIT` | `60/minute` | Predict endpoint rate limit |
+| `NIDS_BATCH_RATE_LIMIT` | `30/minute` | Batch predict rate limit |
+| `NIDS_DEBUG` | `false` | Enable hot-reload (dev only) |
+| `NIDS_CORS_ORIGINS` | `http://localhost:5001,http://localhost:3000` | Allowed CORS origins |
+| `NIDS_API_URL` | `http://localhost:8000` | API URL (for dashboard) |
+| `DASHBOARD_PORT` | `5001` | Flask dashboard port |
+| `REFRESH_INTERVAL` | `5` | Dashboard refresh rate (seconds) |
+| `FLASK_SECRET_KEY` | auto-generated | Flask session secret |
+| `NIDS_EMAIL_PASSWORD` | — | SMTP password for email alerts |
+| `NIDS_SLACK_WEBHOOK` | — | Slack incoming webhook URL for alerts |
+
+### NIDS Engine Config
+
+The real-time engine is configured via `config/nids_config.yaml`:
+- Network interface (default: WiFi, auto-detected)
+- Flow timeout (10s) and max flow limits
+- API connection details and retry logic
+- Email + Slack alerting with severity thresholds and cooldown periods
+- Session-based logging to `logs/sessions/`
+- Performance tuning (batch size, cleanup interval 5s, stats interval 10s)
+- Heuristic detector thresholds (SYN flood: 20 flows/10s; port scan: 15 distinct ports/30s)

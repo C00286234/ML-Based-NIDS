@@ -40,7 +40,8 @@ LABEL version="1.0.0"
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app"
 
 # Create non-root user for security
 RUN groupadd --gid 1000 nids && \
@@ -53,8 +54,14 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
 # Copy application files
+# Note: models/ is NOT copied into the image — docker-compose mounts ./models:/app/models:ro
+# at runtime so models can be updated without rebuilding the image.
 COPY --chown=nids:nids api/ ./api/
-COPY --chown=nids:nids models/ ./models/
+
+# The API imports `from src.constants import FEATURE_NAMES_84`, so we need a
+# minimal src package on PYTHONPATH. Only the two files actually used by the
+# API are copied — the rest of src/ is the NIDS engine and is not needed here.
+COPY --chown=nids:nids src/__init__.py src/constants.py src/alerting.py ./src/
 
 # Create logs directory
 RUN mkdir -p /app/api/logs && chown -R nids:nids /app/api/logs

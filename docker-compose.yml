@@ -2,9 +2,10 @@
 # NIDS Docker Compose Configuration
 # ==============================================================================
 # Services:
-#   - nids-api:    FastAPI ML prediction service         (port 8000)
-#   - prometheus:  Metrics scraping & time-series store  (port 9090)
-#   - grafana:     Monitoring dashboards                 (port 3000)
+#   - nids-api:        FastAPI ML prediction service         (port 8000)
+#   - nids-dashboard:  Flask web UI (SSE live feed)          (port 5001)
+#   - prometheus:      Metrics scraping & time-series store  (port 9090)
+#   - grafana:         Monitoring dashboards                 (port 3000)
 #
 # Usage:
 #   Start:   docker-compose up -d
@@ -14,11 +15,10 @@
 #
 # URLs:
 #   API:        http://localhost:8000
+#   Dashboard:  http://localhost:5001
 #   Prometheus: http://localhost:9090
 #   Grafana:    http://localhost:3000  (admin / nids-admin)
 # ==============================================================================
-
-version: '3.8'
 
 services:
   # ==========================================================================
@@ -37,9 +37,15 @@ services:
       # API Configuration
       - NIDS_LOG_LEVEL=INFO
       - NIDS_WORKERS=1
+      # Prometheus metrics: the instrumentator is configured with
+      # should_respect_env_var=True, so this flag is required for /metrics
+      # to be exposed. Without it the endpoint returns 404 and scrapes fail.
+      - ENABLE_METRICS=true
       # API Authentication (set these in production!)
       - NIDS_API_KEY=${NIDS_API_KEY:-}
       - NIDS_REQUIRE_AUTH=${NIDS_REQUIRE_AUTH:-false}
+      # Rate limiting (disabled locally so demo_traffic_simulator.py isn't throttled)
+      - NIDS_RATE_LIMIT_ENABLED=${NIDS_RATE_LIMIT_ENABLED:-false}
     volumes:
       # Persist logs outside container
       - ./logs/api:/app/api/logs
@@ -64,10 +70,46 @@ services:
           memory: 1G
 
   # ==========================================================================
+  # NIDS Dashboard - Flask Web UI (SSE live feed)
+  # ==========================================================================
+  nids-dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    image: nids-dashboard:latest
+    container_name: nids-dashboard
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      # Talk to the API over the internal Docker network, not localhost
+      - NIDS_API_URL=http://nids-api:8000
+      - NIDS_API_KEY=${NIDS_API_KEY:-}
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=5001
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-}
+    depends_on:
+      nids-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - nids-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ==========================================================================
   # Prometheus - Metrics Collection & Storage
   # ==========================================================================
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.54.1
     container_name: nids-prometheus
     restart: unless-stopped
     ports:
@@ -97,7 +139,7 @@ services:
   # Grafana - Monitoring Dashboards
   # ==========================================================================
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.2.0
     container_name: nids-grafana
     restart: unless-stopped
     ports:

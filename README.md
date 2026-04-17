@@ -1,185 +1,101 @@
-# NIDS-ML: Machine Learning Network Intrusion Detection System
+# A machine learning based approach towards building a real-time Network Intrusion Detection System
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?logo=fastapi&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikit-learn&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/License-GPL--3.0-blue)
+## Problem Description
+With the rising number of network-enabled devices connected to the internet such as mobile phones, IoT appliances, and vehicles, concerns about the security implications of using these devices are growing. The increase in the number and types of networked devices inevitably leads to a wider surface of attack, whereas the impact of successful attacks becomes increasingly severe as more critical responsibilities are assumed by these devices.
 
-A real-time Network Intrusion Detection System that uses machine learning to classify network traffic into 15 attack types. Built as a Final Year Project, it combines a full ML pipeline (data exploration through explainability), a FastAPI prediction service, a live packet-capture engine, and monitoring dashboards.
+To identify and counter network attacks it is common to employ a combination of multiple systems in order to prevent attacks from happening or to detect and stop ongoing attacks if they cannot be prevented initially. These systems are usually comprised of an intrusion prevention system such as a firewall as the first layer of security, with intrusion detection systems representing the second layer. Should the intrusion prevention system be unable to prevent a network attack, it is the task of the detection system to identify malicious network traffic in order to stop the ongoing attack and keep the recorded network traffic data for later analysis. This data can subsequently be used to update the prevention system to allow for the detection of the specific network attack in the future. The need for intrusion detection systems is rising as absolute prevention against attacks is not possible due to the rapid emergence of new attack types.
 
----
+Even though intrusion detection systems are an essential part of network security, many detection systems deployed today have a significant weakness as they rely on signature-based attack classification patterns. These patterns are able to detect the most common known attack patterns but have the drawback of being unable to detect novel attack types. To overcome this limitation, research in intrusion detection systems is focusing on more dynamic approaches based on machine learning and anomaly detection methods. In these systems, the normal network behaviour is learned by processing previously recorded benign data packets, which allows the system to identify new attack types by analysing network traffic for anomalous data flows.
 
-## Architecture
+This project aims to implement a classifier capable of identifying network traffic as either benign or malicious based on machine learning methodologies, and to deploy it as a complete real-time detection system with explainability, monitoring, and alerting capabilities.
 
-```
-                          +---------------------+
-                          |   CIC-IDS2017 Data  |
-                          |   (2M+ flows)       |
-                          +---------+-----------+
-                                    |
-                      (EDA, Preprocessing,Feature Engineering)
-                                    |
-                                    v
-                          +---------------------+
-                          |  Model Training     |
-                          |  RF + XGBoost       |
-                          |  (Notebook 04)      |
-                          +---------+-----------+
-                                    |
-                          +---------+-----------+
-                          |  SHAP / LIME        |
-                          |  Explainability     |
-                          |  (Notebook 05)      |
-                          +---------+-----------+
-                                    |
-                   Saved models (.pkl) + scaler + encoder
-                                    |
-              +---------------------+---------------------+
-              |                                           |
-              v                                           v
-   +--------------------+                    +------------------------+
-   |  FastAPI Service   |<--- REST ---------+|  Flask Dashboard       |
-   |  (port 8000)       |                    |  (port 5001)           |
-   |  /predict           |                    |  Real-time status      |
-   |  /batch_predict     |                    |  Attack distribution   |
-   |  /stats             |                    +------------------------+
-   |  /metrics (Prom)    |
-   +---------+----------+
-             |
-             |  Prometheus scrape (/metrics)
-             v
-   +--------------------+         +------------------------+
-   |  Prometheus        |-------->|  Grafana               |
-   |  (port 9090)       |         |  (port 3000)           |
-   |  30-day retention  |         |  11 dashboard panels   |
-   +--------------------+         +------------------------+
-             ^
-             |
-   +--------------------+
-   |  NIDS Engine       |
-   |  (Real-time)       |
-   |  Scapy capture --> |--- flow aggregation --> feature extraction --> API predict
-   +---------+----------+
-             |
-             |  Attack detected?
-             v
-   +--------------------+
-   |  Alerting          |
-   |  Email (SMTP)      |
-   |  Slack (Webhook)   |
-   +--------------------+
-```
+## Data
+The data used to train the classifier is taken from the [CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) dataset provided by the Canadian Institute for Cybersecurity. It was created by capturing all network traffic during five days of operation inside a controlled network environment where realistic background traffic and different attack scenarios were conducted. As a result the dataset contains both benign network traffic as well as captures of the most common network attacks.
 
-## Features
+The dataset is comprised of raw network captures in pcap format as well as csv files created by using [CICFlowMeter](https://www.unb.ca/cic/research/applications.html#CICFlowMeter) containing 84 statistical features of the individual network flows combined with their corresponding labels. A network flow is defined as an aggregation of interrelated network packets identified by the following properties:
+* Source IP
+* Destination IP
+* Source port
+* Destination port
+* Protocol
 
-- **ML Classification** — Random Forest + XGBoost ensemble detecting 15 attack types with 99.89% accuracy
-- **Real-Time Detection** — Live packet capture via Scapy, 5-tuple flow aggregation, and 84-feature extraction
-- **Explainability** — SHAP and LIME explanations for every prediction (top 5 contributing features)
-- **REST API** — FastAPI with Swagger docs, batch prediction, rate limiting, and optional API key auth
-- **Alerting** — Email (Gmail/Outlook SMTP) and Slack webhook notifications with configurable severity thresholds and cooldown periods
-- **Session Logging** — Timestamped session directories with separate engine, prediction, attack, and summary logs per run
-- **One-Command Launch** — `run_nids.py` starts both the API server and NIDS engine together
-- **Monitoring** — Prometheus metrics + pre-built Grafana dashboard (latency, attack trends, model health)
-- **Flask Dashboard** — Lightweight real-time status page with auto-refresh and attack distribution charts
-- **Benchmarking & Evaluation** — Performance benchmarks (latency/throughput) and randomised accuracy testing with confidence intervals
-- **Docker Support** — Single `docker-compose up` deploys the full stack (API + Prometheus + Grafana)
+The dataset contains approximately 2.1 million individual network flows and covers the following attack scenarios:
+* Brute Force (FTP-Patator, SSH-Patator)
+* DoS (Slowloris, Slowhttptest, Hulk, GoldenEye)
+* DDoS
+* Heartbleed
+* Web Attack (Brute Force, XSS, SQL Injection)
+* Infiltration
+* Botnet
+* Portscan
 
-## Tech Stack
+## Approach
+The goal of this project is to create a classifier capable of categorising network flows into 15 distinct attack types and benign traffic. The problem is understood as a supervised learning problem using the labels provided in the dataset. It is formulated as a multiclass classification problem differentiating between the individual classes of attacks provided in the dataset. A relevant subset of the features provided in the dataset will be used as predictors to classify individual network flows.
 
-| Layer | Technology |
-|---|---|
-| ML Models | scikit-learn (Random Forest), XGBoost |
-| Explainability | SHAP, LIME |
-| Data Processing | NumPy, Pandas |
-| API | FastAPI, Uvicorn, Pydantic |
-| Dashboard | Flask, Chart.js |
-| Packet Capture | Scapy |
-| Monitoring | Prometheus, Grafana |
-| Containerisation | Docker, Docker Compose |
-| Security | slowapi (rate limiting), API key auth |
+Traditional machine learning methods, specifically Random Forest and XGBoost, are applied to the problem in an ensemble configuration. Class imbalance is addressed using SMOTE, applied exclusively to the training set to prevent data leakage. Feature selection is performed using ANOVA F-test to reduce the feature space from 84 to the 50 most discriminative features. Model predictions are enhanced with SHAP-based explanations to provide feature-level attributions for every classification decision.
 
-## Project Structure
+Beyond the classifier itself, the project implements a complete real-time detection pipeline: live packet capture via Scapy, 5-tuple bidirectional flow aggregation, in-line extraction of the 84 CIC-IDS2017 features, and asynchronous prediction submission to the classification service. Heuristic detectors (SYN flood and port scan) supplement the ML classifier with cross-flow pattern detection.
+
+## Deliverables
+The classifier is deployed and served via a REST API in conjunction with a real-time packet capture engine, a monitoring dashboard, and an alerting system.
+
+The REST API provides the following functionality:
+* an endpoint to submit individual network flows for classification with SHAP-based explainability
+* an endpoint to submit batches of up to 1000 flows for efficient bulk prediction
+* an endpoint exposing Prometheus metrics for operational monitoring
+* health, statistics, and introspection endpoints for system observability
+* optional API key authentication and per-endpoint rate limiting
+
+The real-time engine provides:
+* live packet capture on a configurable network interface with kernel-level BPF filtering
+* 5-tuple bidirectional flow aggregation with configurable completion conditions
+* feature extraction matching the 84 CIC-IDS2017 features used during training
+* asynchronous prediction submission to the REST API via a thread pool
+* session-based logging with separate engine, prediction, attack, and summary logs per run
+* Email (SMTP) and Slack (webhook) alerting with severity-based thresholds and cooldown periods
+
+To further showcase the project, a demonstration traffic simulator replays real CIC-IDS2017 flows against the running system to illustrate end-to-end detection across each attack category.
+
+## Computational resources
+The requirements regarding the computational resources to train the classifiers are given below:
+
+| Category | Resource |
+| -------- | -------- |
+| CPU | Intel Core i7 processor |
+| RAM | 16 GB |
+| GPU | Not required |
+| HDD | 20 GB (for dataset + model artifacts) |
+
+## Classifier
+
+The machine learning estimator created in this project follows a supervised approach and is trained using a soft-voting ensemble of two tree-based algorithms: a [Random Forest](https://en.wikipedia.org/wiki/Random_forest) classifier and an [XGBoost](https://xgboost.readthedocs.io/) gradient boosting classifier. The ensemble averages the probability distributions from both models to produce the final classification, combining Random Forest's variance reduction via bagging with XGBoost's bias reduction via boosting.
+
+Random Forest is configured with 200 trees, a maximum depth of 20, and a minimum of 5 samples required to split a node. XGBoost is configured with up to 300 boosting rounds, a maximum tree depth of 10, a learning rate of 0.1, row and column sampling of 0.8, and early stopping after 10 rounds without validation loss improvement. The full set of chosen parameters and evaluation metrics can be examined in [`04_model_training_improved.py`](04_model_training_improved.py).
+
+Predictions are enhanced with [SHAP](https://shap.readthedocs.io/) (SHapley Additive exPlanations) using the TreeExplainer implementation, which computes exact Shapley values for tree-based models. Each prediction returned by the API includes the top five contributing features along with their attribution values.
+
+## Deployment Architecture
+
+The deployment architecture of the complete NIDS-ML system is explained in detail in [`SYSTEM_EXPLANATION.md`](SYSTEM_EXPLANATION.md). A summary of the pipeline: trained models are served by a FastAPI prediction service on port 8000, which is consumed by both a real-time packet capture engine running locally and a Flask monitoring dashboard on port 5001. Prometheus scrapes the API's `/metrics` endpoint every 15 seconds, and Grafana provides visualisation over the collected time-series data via an 11-panel pre-built dashboard.
+
+## Model Training and Deployment
+
+The model can be trained and deployed locally using the provided Python scripts. Containerised deployment of the full stack (API + Prometheus + Grafana) is supported via Docker Compose.
+
+### Installation
+
+To install the necessary dependencies checkout the project and create a new Python virtual environment.
 
 ```
-FYP-NIDS-ML/
-├── api/                            # FastAPI prediction service
-│   ├── app.py                      # Main API (endpoints, model loading, SHAP)
-│   ├── auth.py                     # API key authentication
-│   ├── rate_limit.py               # Rate limiting middleware
-│   ├── test_client.py              # API test suite
-│   └── requirements.txt
-│
-├── src/                            # Real-time NIDS engine
-│   ├── nids_engine.py              # Main orchestrator (session logging)
-│   ├── packet_capture.py           # Scapy packet capture
-│   ├── flow_aggregator.py          # 5-tuple flow aggregation
-│   ├── feature_extractor.py        # 84-feature extraction
-│   ├── alerting.py                 # Email + Slack alert management
-│   ├── constants.py                # Shared feature name definitions
-│   └── requirements.txt
-│
-├── testing/                        # Kali Linux attack testing suite
-│   ├── vulnerable_webapp.py        # Intentionally vulnerable Flask app
-│   ├── setup_services.py           # FTP/SSH test service setup
-│   ├── run_kali_tests.py           # Automated Kali attack runner
-│   ├── parse_kali_results.py       # Results parser
-│   └── verify_interface.py         # Network interface checker
-│
-├── dashboard/                      # Flask monitoring UI
-│   ├── app.py                      # Dashboard routes
-│   ├── templates/index.html        # Web interface
-│   └── static/style.css            # Dark theme (Catppuccin Mocha)
-│
-├── monitoring/                     # Prometheus + Grafana configs
-│   ├── prometheus/prometheus.yml
-│   └── grafana/
-│       ├── provisioning/           # Auto-configure datasource
-│       └── dashboards/             # Pre-built NIDS dashboard
-│
-├── figures/                        # Generated visualisations
-│   ├── shap/                       # SHAP explanations
-│   └── lime/                       # LIME explanations
-│
-├── results/                        # Evaluation & benchmark results (CSV/TXT)
-├── config/nids_config.yaml         # NIDS engine configuration
-│
-├── 01_data_exploration.ipynb       # EDA & class distributions
-├── 02_data_preprocessing.ipynb     # Cleaning & encoding
-├── 03_feature_engineering.ipynb    # Feature scaling & selection
-├── 04_model_training.ipynb         # RF + XGBoost training
-├── 05_xai_explainability.ipynb     # SHAP + LIME analysis
-├── 06_api_deployment.ipynb         # Deployment walkthrough
-├── 04_model_training_improved.py   # Standalone training script
-│
-├── run_nids.py                     # One-command launcher (API + engine)
-├── benchmark_suite.py              # Performance benchmarks
-├── randomised_evaluation.py        # Randomised accuracy evaluation
-├── test_attack_detection.py        # Attack detection validation
-├── SYSTEM_EXPLANATION.md           # System architecture documentation
-│
-├── Dockerfile                      # Multi-stage API container
-├── docker-compose.yml              # Full stack orchestration
-└── .dockerignore
-```
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- [Npcap](https://npcap.com/) (Windows) or libpcap (Linux/Mac) — for live packet capture
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — optional, for the monitoring stack
-
-### 1. Clone & Set Up
-
-```bash
-git clone https://github.com/C00286234/FYP-NIDS-ML.git
-cd FYP-NIDS-ML
-
 python -m venv .venv
+```
+
+Afterwards activate the environment and install the project dependencies.
+
+```
 # Windows
 .venv\Scripts\activate
+
 # Linux/Mac
 source .venv/bin/activate
 
@@ -188,124 +104,105 @@ pip install -r src/requirements.txt
 pip install -r dashboard/requirements.txt
 ```
 
-### 2. Generate Models
+Live packet capture requires [Npcap](https://npcap.com/) on Windows or libpcap on Linux/Mac.
 
-Models are not included in the repo due to size (~147MB). Generate them by running the training notebook:
+### Dataset Creation
 
-```bash
-# Install Jupyter if needed
-pip install jupyter
+To create the dataset for training, download the raw [CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) dataset and run the preprocessing and feature engineering scripts in sequence:
 
-# Option A: Run the notebook interactively
-jupyter notebook 04_model_training.ipynb
+```
+python 02_data_preprocessing.py
+python 03_feature_engineering.py
+```
 
-# Option B: Run the standalone training script
+This pipeline reads the source CSVs, consolidates attack labels, cleans problematic values (infinity, NaN), applies StandardScaler normalisation, performs ANOVA-based feature selection (84 features reduced to 50), and applies SMOTE to the training set to address class imbalance. Upon completion, the processed data and transformation artifacts are saved to `data/processed/` and `models/` respectively.
+
+### Local Mode
+
+To train the model using the default parameters and dataset locations, use the following command:
+
+```
 python 04_model_training_improved.py
 ```
 
-> **Note:** Training requires the CIC-IDS2017 dataset in `data/processed/cicids2017_cleaned.csv`. Download the raw dataset from [UNB CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) and run notebooks 01-03 to preprocess it. Alternatively, run notebooks 01 through 04 in sequence.
+Upon completion of the training process the model artifacts can be found in the `models/` directory:
 
-This creates the following in `models/`:
 | File | Purpose |
-|---|---|
-| `random_forest_model.pkl` | Primary model (~140MB) |
-| `xgboost_model.pkl` | Fallback model (~7MB) |
-| `scaler.pkl` | StandardScaler for 84 features |
-| `feature_selector.pkl` | SelectKBest (84 → 50 features) |
-| `label_encoder.pkl` | Maps 15 classes to numeric labels |
+| ---- | ------- |
+| `random_forest_model.pkl` | Random Forest classifier (~140 MB) |
+| `xgboost_model.pkl` | XGBoost classifier (~7 MB) |
+| `scaler.pkl` | StandardScaler fitted on training data |
+| `feature_selector.pkl` | SelectKBest (84 to 50 features) |
+| `label_encoder.pkl` | Maps 16 classes to numeric labels |
 | `training_config.pkl` | Training metadata |
 
-### 3. Run the API
+To deploy the model locally, start the FastAPI prediction service:
 
-```bash
-cd api
-python -m uvicorn app:app --host 0.0.0.0 --port 8000
 ```
-
-Verify: open [http://localhost:8000/docs](http://localhost:8000/docs) for Swagger UI.
-
-### 4. Run the Dashboard (optional)
-
-```bash
-cd dashboard
-python app.py
-```
-
-Open [http://localhost:5001](http://localhost:5001).
-
-### 5. Run the NIDS Engine (optional, requires admin)
-
-```bash
-# Requires administrator/root privileges for packet capture
-
-# Option A: Launch both API + engine together
-python run_nids.py
-
-# Option B: Specify a network interface
-python run_nids.py -i Ethernet
-
-# Option C: Start only the API or only the engine
 python run_nids.py --api-only
-python run_nids.py --engine-only    # API must already be running
 ```
 
-Session logs are saved to `logs/sessions/YYYYMMDD_HHMMSS/` with separate engine, prediction, attack, and summary files.
+The API will be accessible at `http://localhost:8000` with interactive Swagger documentation at `http://localhost:8000/docs`. To launch both the API and the real-time packet capture engine together (requires administrator privileges):
 
-## Docker Deployment
+```
+python run_nids.py
+```
 
-Deploy the API with full monitoring in one command:
+To specify a network interface explicitly:
 
-```bash
+```
+python run_nids.py -i Ethernet
+```
+
+Session logs for each run are saved to `logs/sessions/YYYYMMDD_HHMMSS/` with separate engine, prediction, attack, and summary files.
+
+### Docker
+
+The complete stack (API, Prometheus, and Grafana) can also be deployed as Docker containers using the provided Docker Compose configuration:
+
+```
 docker-compose up -d
 ```
 
+After startup the following services become available:
+
 | Service | URL | Credentials |
-|---|---|---|
-| NIDS API | [http://localhost:8000](http://localhost:8000) | — |
-| Swagger Docs | [http://localhost:8000/docs](http://localhost:8000/docs) | — |
-| Prometheus | [http://localhost:9090](http://localhost:9090) | — |
-| Grafana | [http://localhost:3000](http://localhost:3000) | admin / nids-admin |
+| ------- | --- | ----------- |
+| NIDS API | http://localhost:8000 | — |
+| Swagger Docs | http://localhost:8000/docs | — |
+| Prometheus | http://localhost:9090 | — |
+| Grafana | http://localhost:3000 | admin / nids-admin |
 
-```bash
-# View logs
-docker-compose logs -f nids-api
+To stop the stack:
 
-# Stop
+```
 docker-compose down
-
-# Rebuild after code changes
-docker-compose up -d --build
 ```
 
-## API Reference
+## Using the Classifier
 
-| Method | Endpoint | Description | Rate Limit |
-|---|---|---|---|
-| `GET` | `/` | Welcome message + endpoint list | — |
-| `GET` | `/health` | Health check (model status, uptime) | — |
-| `GET` | `/stats` | Usage statistics (predictions, attack distribution) | — |
-| `GET` | `/metrics` | Prometheus metrics (text format) | — |
-| `GET` | `/features` | List of 84 required feature names | — |
-| `GET` | `/classes` | List of 15 attack classes | — |
-| `POST` | `/predict` | Single flow prediction + SHAP explanation | 60/min |
-| `POST` | `/batch_predict` | Batch prediction (up to 1000 flows) | 30/min |
-| `GET` | `/docs` | Interactive Swagger documentation | — |
+The classifier can be accessed directly through the REST API exposed by the prediction service. Once the API is running, predictions can be submitted either as individual flows or as batches of up to 1000 flows per request.
 
-### Example: Single Prediction
+### REST API
 
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"features": {"Src Port": 443, "Dst Port": 80, "Protocol": 6, ...}}'
+To invoke the REST API, the following command can be used to submit a prediction request for a given network flow:
+
+```
+curl -X POST \
+  http://localhost:8000/predict \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"features": {"Src Port": 443, "Dst Port": 80, "Protocol": 6, "Flow Duration": 119759145, "Total Fwd Packet": 75837, "Total Bwd packets": 0, ...}}'
 ```
 
-Response:
+A successful prediction response includes the predicted class, confidence score, full probability distribution across all 16 classes, and the top five contributing features identified via SHAP:
+
 ```json
 {
   "prediction": "DDoS",
   "confidence": 0.9847,
   "is_attack": true,
-  "probabilities": {"BENIGN": 0.012, "DDoS": 0.985, ...},
+  "probabilities": {"BENIGN": 0.012, "DDoS": 0.985, "DoS Hulk": 0.002, ...},
   "explanation": [
     {"feature": "Flow Packets/s", "value": 15234.5, "contribution": 0.42},
     {"feature": "Dst Port", "value": 80.0, "contribution": 0.28}
@@ -313,196 +210,17 @@ Response:
 }
 ```
 
-## Monitoring
+The full API reference, including the batch prediction endpoint, health checks, statistics, and Prometheus metrics, is available through the interactive Swagger documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-### Flask Dashboard (port 5001)
-Real-time status page showing current attack counts, system health, and attack distribution. Auto-refreshes every 5 seconds.
+### Demonstration Traffic Simulator
 
-### Grafana (port 3000)
-Pre-built dashboard with 11 panels:
-- **Overview** — Total predictions, attacks detected, attack rate %, avg latency
-- **Traffic Over Time** — Predictions and attacks as time-series graphs
-- **Performance** — Latency percentiles (p50/p95/p99), API request rate
-- **Breakdown** — Attack type distribution (pie chart), model status, top attack types
+For convenience, an interactive demonstration simulator is provided that replays real CIC-IDS2017 flows against the running API to showcase end-to-end detection across each attack category:
 
-### Prometheus (port 9090)
-Scrapes the API every 15 seconds. Key metrics:
-- `nids_predictions_total` — Total predictions (by class)
-- `nids_attacks_detected_total` — Attacks detected (by type)
-- `nids_prediction_latency_seconds` — Prediction latency histogram
-- `nids_models_loaded` — Model load status gauge
-
-## ML Pipeline
-
-The ML pipeline is implemented across 6 Jupyter notebooks:
-
-| # | Notebook | Purpose |
-|---|---|---|
-| 01 | `01_data_exploration.ipynb` | EDA, class distributions, feature correlations |
-| 02 | `02_data_preprocessing.ipynb` | Cleaning, missing values, outlier removal |
-| 03 | `03_feature_engineering.ipynb` | Feature scaling (StandardScaler), selection (SelectKBest: 84 → 50) |
-| 04 | `04_model_training.ipynb` | Random Forest + XGBoost, SMOTE for class imbalance, 5-fold CV |
-| 05 | `05_xai_explainability.ipynb` | SHAP (global + local) and LIME explanations |
-| 06 | `06_api_deployment.ipynb` | FastAPI deployment walkthrough |
-
-### Dataset
-
-**CIC-IDS2017** from the Canadian Institute for Cybersecurity — 2,099,976 network flows captured over 5 days with 15 attack types injected into normal traffic.
-
-### To Retrain
-
-```bash
-# Run the standalone training script
-python 04_model_training_improved.py
-
-# Or run notebooks 01-04 in sequence for the full pipeline
-jupyter notebook
+```
+python demo_traffic_simulator.py
 ```
 
-## Model Performance
-
-Evaluated on a held-out test set (311,746 flows):
-
-| Metric | XGBoost | Random Forest |
-|---|---|---|
-| **Accuracy** | 99.89% | 99.40% |
-| **F1 (macro)** | 0.9670 | 0.9640 |
-| **Precision** | 97.39% | 99.41% |
-| **Recall** | 96.15% | 99.40% |
-
-### Confusion Matrices
-
-<p align="center">
-  <img src="figures/xgboost_confusion_matrix_v2.png" alt="XGBoost Confusion Matrix" width="45%">
-  <img src="figures/rf_confusion_matrix.png" alt="Random Forest Confusion Matrix" width="45%">
-</p>
-
-### Feature Importance (SHAP)
-
-<p align="center">
-  <img src="figures/shap/global_importance.png" alt="SHAP Global Feature Importance" width="70%">
-</p>
-
-### Known Limitations
-
-The model underperforms on two classes due to limited training samples in CIC-IDS2017:
-
-| Class | F1 Score | Test Samples |
-|---|---|---|
-| Web Attack - Brute Force | 0.55 | 205 |
-| Web Attack - XSS | 0.46 | 101 |
-
-All other classes achieve F1 scores above 0.92.
-
-## Testing & Evaluation
-
-### Benchmark Suite
-
-Measures system performance under load:
-
-```bash
-python benchmark_suite.py
-```
-
-Reports latency percentiles (p50/p95/p99), single-prediction vs batch throughput, and concurrent request handling. Results are saved to `results/`.
-
-### Randomised Evaluation
-
-Runs attack detection tests with different random seeds and larger samples to produce statistically robust results:
-
-```bash
-python randomised_evaluation.py
-```
-
-Outputs mean accuracy with standard deviation and 95% confidence intervals across multiple runs.
-
-### Attack Detection Validation
-
-Tests the API against known attack samples from the CIC-IDS2017 dataset:
-
-```bash
-python test_attack_detection.py
-```
-
-Reports per-class accuracy, precision, recall, and overall detection rates.
-
-### Kali Linux Live Testing
-
-The `testing/` directory contains tools for generating real attack traffic against the NIDS using Kali Linux:
-
-- `vulnerable_webapp.py` — Intentionally vulnerable Flask app (SQL injection, XSS, brute-force targets)
-- `setup_services.py` — Sets up FTP/SSH services for brute-force testing
-- `run_kali_tests.py` — Automated attack runner using Hydra, Nmap, and Slowloris
-- `parse_kali_results.py` — Parses Kali tool output into structured results
-
-## Alerting
-
-The NIDS engine sends real-time alerts when attacks are detected, configurable via `config/nids_config.yaml`.
-
-### Email (SMTP)
-
-Supports Gmail, Outlook, and custom SMTP servers with HTML-formatted alert emails.
-
-```yaml
-alerting:
-  email:
-    enabled: true
-    smtp_server: smtp.gmail.com
-    smtp_port: 587
-    sender: nids-alerts@example.com
-    password: ${NIDS_EMAIL_PASSWORD}
-    recipients:
-      - security-team@example.com
-    min_confidence: 0.9
-    cooldown_minutes: 5
-    severity_threshold: medium
-```
-
-### Slack (Webhook)
-
-Posts attack alerts to a Slack channel via incoming webhook.
-
-```yaml
-alerting:
-  slack:
-    enabled: true
-    webhook_url: ${NIDS_SLACK_WEBHOOK}
-    channel: "#nids-alerts"
-    min_confidence: 0.8
-    cooldown_minutes: 2
-    severity_threshold: medium
-```
-
-Alerts include attack type, severity level, confidence score, source/destination IPs, and top contributing features. Cooldown periods prevent alert flooding during sustained attacks.
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `NIDS_LOG_LEVEL` | `INFO` | Logging level |
-| `NIDS_REQUIRE_AUTH` | `false` | Enable API key authentication |
-| `NIDS_API_KEY` | — | API key (if auth enabled) |
-| `NIDS_RATE_LIMIT` | `100/minute` | Global rate limit |
-| `NIDS_DEBUG` | `false` | Enable hot-reload (dev only) |
-| `NIDS_CORS_ORIGINS` | `http://localhost:5001,http://localhost:3000` | Allowed CORS origins |
-| `NIDS_API_URL` | `http://localhost:8000` | API URL (for dashboard) |
-| `DASHBOARD_PORT` | `5001` | Flask dashboard port |
-| `REFRESH_INTERVAL` | `5` | Dashboard refresh rate (seconds) |
-| `FLASK_SECRET_KEY` | auto-generated | Flask session secret |
-| `NIDS_EMAIL_PASSWORD` | — | SMTP password for email alerts |
-| `NIDS_SLACK_WEBHOOK` | — | Slack incoming webhook URL for alerts |
-
-### NIDS Engine Config
-
-The real-time engine is configured via `config/nids_config.yaml`:
-- Network interface (default: WiFi, auto-detected)
-- Flow timeout (10s) and max flow limits
-- API connection details and retry logic
-- Email + Slack alerting with severity thresholds and cooldown periods
-- Session-based logging to `logs/sessions/`
-- Performance tuning (batch size, cleanup interval 5s, stats interval 10s)
+The simulator provides keyboard controls to switch between attack scenarios (DDoS, Port Scan, DoS Hulk, Brute Force, Web Attacks, Botnet, Infiltration), adjust replay speed, and pause or resume traffic. A live terminal display tracks overall accuracy, attack detection rate, and recent predictions in real time.
 
 ## Acknowledgements
 

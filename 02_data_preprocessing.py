@@ -230,7 +230,7 @@ def main():
     print(f"  Total classes:  {df['Label'].nunique()}")
     print(f"  Missing values: {missing}")
     print(f"  Output:         {os.path.relpath(output_path, BASE_PATH)}")
-    print(f"\n  Next step: python 03_feature_engineering.py")
+    print(f"\n  Next step: python 04_model_training_improved.py")
 
 
 if __name__ == "__main__":

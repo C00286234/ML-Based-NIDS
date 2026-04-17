@@ -430,3 +430,356 @@ body {
 .status-dot.connected {
     animation: pulse 2s ease-in-out infinite;
 }
+
+/* ==============================================================================
+   Layout C - Narrative flow additions
+   ============================================================================== */
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.notify-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(249, 226, 175, 0.15);
+    color: var(--yellow);
+    border: 1px solid rgba(249, 226, 175, 0.3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.notify-btn:hover { background: rgba(249, 226, 175, 0.25); }
+
+.panel {
+    background: var(--base);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+}
+.panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--spacing-md);
+}
+.panel-subtitle {
+    font-size: 0.75rem;
+    color: var(--overlay1);
+    font-weight: 400;
+}
+
+.timeline-chart-container {
+    height: 200px;
+    position: relative;
+}
+
+.three-across {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+@media (max-width: 1000px) {
+    .three-across { grid-template-columns: 1fr; }
+}
+
+.chart-container {
+    height: 260px;
+    position: relative;
+}
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--base);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    font-size: 0.8rem;
+    color: var(--subtext0);
+}
+.status-bar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+.status-bar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--overlay0);
+}
+.status-bar-dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-bar-dot.err { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+/* ==============================================================================
+   Detection card + feed
+   ============================================================================== */
+.feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+.feed-header .panel-title { margin-bottom: 0; }
+
+.feed-list {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.feed-list > .dcard { margin-bottom: 8px; }
+
+.sse-banner {
+    background: rgba(249, 226, 175, 0.15);
+    color: var(--yellow);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.new-detections-pill {
+    background: var(--blue);
+    color: var(--crust);
+    border: none;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+.new-detections-pill:hover { transform: scale(1.05); }
+
+.hidden { display: none !important; }
+
+.dcard {
+    display: grid;
+    grid-template-columns: 4px 1fr auto;
+    grid-auto-rows: minmax(56px, auto);
+    gap: 0;
+    background: var(--mantle);
+    border: 1px solid rgba(205, 214, 244, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dcard:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4); }
+.dcard.benign { opacity: 0.55; }
+
+.dcard .stripe { width: 4px; background: var(--overlay0); }
+.dcard.critical .stripe { background: var(--red); }
+.dcard.high .stripe { background: var(--peach); }
+.dcard.medium .stripe { background: var(--yellow); }
+.dcard.low .stripe { background: var(--green); }
+
+.dcard .body {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text);
+}
+.dcard .row1 { display: flex; align-items: center; gap: 8px; }
+.dcard .attack { font-weight: 700; font-size: 0.85rem; color: var(--text); }
+.dcard .sev {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(249, 226, 175, 0.15);
+    color: var(--yellow);
+}
+.dcard.critical .sev { background: rgba(243, 139, 168, 0.18); color: var(--red); }
+.dcard.high .sev { background: rgba(250, 179, 135, 0.18); color: var(--peach); }
+.dcard.low .sev { background: rgba(166, 227, 161, 0.18); color: var(--green); }
+
+.dcard .confbar {
+    height: 3px;
+    background: rgba(205, 214, 244, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.dcard .conffill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--yellow);
+}
+.dcard.critical .conffill { background: var(--red); }
+.dcard.high .conffill { background: var(--peach); }
+.dcard.low .conffill { background: var(--green); }
+
+.dcard .flow {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.7rem;
+    color: var(--subtext0);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dcard .rightcol {
+    padding: 10px 14px 10px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-size: 0.7rem;
+    color: var(--subtext0);
+}
+.dcard .confpct { font-weight: 700; color: var(--text); font-size: 0.85rem; }
+
+.dcard.expanded { grid-template-columns: 4px 1fr; }
+.dcard.expanded .rightcol { display: none; }
+
+.dcard .detail {
+    grid-column: 2;
+    padding: 0 14px 14px;
+    border-top: 1px solid rgba(205, 214, 244, 0.08);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.dcard .detail-title {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 6px;
+}
+
+.dcard .shap-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 55px;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.7rem;
+}
+.dcard .fname {
+    font-family: 'Fira Code', monospace;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dcard .shap-bar {
+    height: 12px;
+    background: rgba(205, 214, 244, 0.05);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+.dcard .shap-fill-pos {
+    position: absolute; top: 0; left: 50%; height: 100%;
+    background: var(--peach);
+    border-radius: 0 2px 2px 0;
+}
+.dcard .shap-fill-neg {
+    position: absolute; top: 0; right: 50%; height: 100%;
+    background: rgba(205, 214, 244, 0.15);
+    border-radius: 2px 0 0 2px;
+}
+.dcard .shap-value {
+    font-family: 'Fira Code', monospace;
+    color: var(--subtext0);
+    text-align: right;
+}
+
+.dcard .probs { display: flex; flex-direction: column; gap: 3px; }
+.dcard .prob-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 40px;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.7rem;
+}
+.dcard .pname { color: var(--subtext0); }
+.dcard .prob-bar {
+    height: 5px;
+    background: rgba(205, 214, 244, 0.05);
+    border-radius: 2px;
+}
+.dcard .prob-fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 2px;
+}
+.dcard .prob-value {
+    font-family: 'Fira Code', monospace;
+    color: var(--text);
+    text-align: right;
+    font-size: 0.625rem;
+}
+
+.dcard .agree { font-size: 0.7rem; color: var(--green); }
+.dcard .agree.dis { color: var(--yellow); }
+
+/* ==============================================================================
+   Severity bars
+   ============================================================================== */
+.sev-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 40px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.75rem;
+}
+.sev-label {
+    text-transform: capitalize;
+    color: var(--subtext0);
+}
+.sev-track {
+    height: 8px;
+    background: rgba(205, 214, 244, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.sev-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+.sev-count {
+    text-align: right;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ==============================================================================
+   Top talkers
+   ============================================================================== */
+.talker-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.75rem;
+    border-bottom: 1px solid rgba(205, 214, 244, 0.06);
+}
+.talker-row:last-child { border-bottom: none; }
+.talker-ip {
+    font-family: 'Fira Code', monospace;
+    color: var(--text);
+}
+.talker-count {
+    font-weight: 600;
+    color: var(--peach);
+}

@@ -60,8 +60,9 @@ logs/
 # Configuration (will use environment variables)
 config/
 
-# Source code for NIDS engine (not needed for API container)
-src/
+# Source code for NIDS engine (mostly not needed for API container).
+# The API only imports src.constants, which is explicitly copied in the Dockerfile.
+# We keep src/ in the build context so that COPY can pick out just the files needed.
 
 # Build artifacts
 dist/
