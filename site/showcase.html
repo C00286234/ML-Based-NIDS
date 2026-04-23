@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIDS-ML Showcase Handout — Folosiye Adegbola</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #1a1b26;
+      --bg-alt: #16161e;
+      --bg-card: #1f2335;
+      --border: #3b4261;
+      --text: #c0caf5;
+      --text-dim: #a9b1d6;
+      --text-muted: #737aa2;
+      --accent: #7aa2f7;
+      --accent-2: #bb9af7;
+      --accent-3: #9ece6a;
+      --accent-warn: #f7768e;
+      --accent-amber: #e0af68;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f1016;
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      background: var(--bg);
+      padding: 14mm 14mm 12mm;
+      box-shadow: 0 20px 60px -20px rgba(0,0,0,0.7);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page::before {
+      content: "";
+      position: absolute;
+      top: -180px;
+      right: -180px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(122,162,247,0.18), transparent 65%);
+      pointer-events: none;
+    }
+    .page::after {
+      content: "";
+      position: absolute;
+      bottom: -180px;
+      left: -180px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(187,154,247,0.12), transparent 65%);
+      pointer-events: none;
+    }
+
+    .accent { color: var(--accent); }
+    .accent-2 { color: var(--accent-2); }
+    .accent-3 { color: var(--accent-3); }
+    .accent-warn { color: var(--accent-warn); }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 2;
+    }
+    .header-left .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .header-left .tagline {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-dim);
+      max-width: 120mm;
+    }
+    .header-right {
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      white-space: nowrap;
+    }
+    .header-right strong { color: var(--text); font-weight: 600; }
+
+    /* Stats row */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+      position: relative;
+      z-index: 2;
+    }
+    .stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat .val {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .stat .val span { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+    .stat .lbl {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+    }
+
+    /* Section */
+    .section { margin-top: 14px; position: relative; z-index: 2; }
+    .section-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-warn);
+      margin-bottom: 6px;
+    }
+    .section h2 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+    .section p { font-size: 11.5px; color: var(--text-dim); }
+
+    /* Two-col grid for body */
+    .body-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .card h3 {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .card.warm h3 { color: var(--accent-warn); }
+    .card.purple h3 { color: var(--accent-2); }
+    .card.green h3 { color: var(--accent-3); }
+
+    .card p, .card li {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.55;
+    }
+    .card ul { list-style: none; padding: 0; margin: 0; }
+    .card li {
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(59,66,97,0.5);
+    }
+    .card li:last-child { border-bottom: none; }
+    .card li strong { color: var(--text); font-weight: 600; }
+
+    /* Architecture pipeline */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .pipe-step {
+      background: rgba(122,162,247,0.08);
+      border: 1px solid rgba(122,162,247,0.25);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 10.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+    }
+    .pipe-step .muted { color: var(--text-muted); font-size: 9.5px; display: block; }
+    .pipe-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 10px;
+      line-height: 1;
+    }
+    .pipe-step.warm {
+      background: rgba(247,118,142,0.08);
+      border-color: rgba(247,118,142,0.25);
+    }
+
+    /* Stack pills */
+    .stack-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .pill {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      background: rgba(187,154,247,0.1);
+      border: 1px solid rgba(187,154,247,0.3);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    /* Results table */
+    .results-table {
+      width: 100%;
+      font-size: 10.5px;
+      border-collapse: collapse;
+      margin-top: 4px;
+    }
+    .results-table th, .results-table td {
+      text-align: left;
+      padding: 4px 6px;
+      border-bottom: 1px dashed rgba(59,66,97,0.5);
+    }
+    .results-table th {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .results-table td { color: var(--text-dim); }
+    .results-table td strong { color: var(--accent-3); }
+
+    /* Footer / contact */
+    .footer {
+      margin-top: 16px;
+      padding: 14px;
+      background: linear-gradient(135deg, rgba(122,162,247,0.1), rgba(187,154,247,0.08));
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+    .contact h3 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+    .contact .role {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 8px;
+    }
+    .contact-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 16px;
+      font-size: 11px;
+    }
+    .contact-list li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-dim);
+    }
+    .contact-list li .k {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      min-width: 48px;
+    }
+    .contact-list li .v { color: var(--text); font-weight: 500; }
+
+    .qr {
+      background: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid var(--border);
+    }
+    .qr img { width: 110px; height: 110px; display: block; }
+    .qr .qr-label {
+      font-size: 8.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #1a1b26;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Print */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page {
+        width: 100%;
+        min-height: 100vh;
+        box-shadow: none;
+        padding: 10mm;
+      }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <p class="eyebrow">Final Year Project · BSc (Hons) Software Development · SETU</p>
+        <h1>A Machine Learning Approach to a <span class="accent">Real-Time</span><br/>Network Intrusion Detection System</h1>
+        <p class="tagline">A Random Forest + XGBoost ensemble that classifies live network flows into 15 attack categories, with per-prediction SHAP explanations, Prometheus monitoring, and one-command Docker deployment.</p>
+      </div>
+      <div class="header-right">
+        <strong>Folosiye Adegbola</strong><br/>
+        petermakanjuola@outlook.com<br/>
+        github.com/C00286234<br/>
+        <span style="color:var(--accent-3)">ML-Based-NIDS</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <div class="val">99.4<span>%</span></div>
+        <div class="lbl">Test Accuracy</div>
+      </div>
+      <div class="stat">
+        <div class="val">91.9<span>%</span></div>
+        <div class="lbl">Balanced Acc.</div>
+      </div>
+      <div class="stat">
+        <div class="val">15</div>
+        <div class="lbl">Attack Classes</div>
+      </div>
+      <div class="stat">
+        <div class="val">2.1<span>M</span></div>
+        <div class="lbl">Flows Trained</div>
+      </div>
+    </div>
+
+    <!-- Problem / Solution -->
+    <div class="section">
+      <p class="section-title">01 · The Problem</p>
+      <h2>Signature-based IDS cannot catch what it has not already seen.</h2>
+      <p>Traditional intrusion detection systems rely on hand-written rules that match known attack signatures — meaning zero-day and polymorphic attacks slip through. ML-based detectors can generalise, but the field has a trust problem: most models are opaque "black boxes" that security teams cannot audit or justify to an auditor. This project closes that gap.</p>
+    </div>
+
+    <!-- Two column body -->
+    <div class="body-grid">
+
+      <div class="card">
+        <h3>Solution Architecture</h3>
+        <div class="pipeline">
+          <div class="pipe-step">Scapy Live Capture <span class="muted">BPF filter · thread-safe queue</span></div>
+          <div class="pipe-arrow">↓</div>
+          <div class="pipe-step">Flow Aggregator <span class="muted">5-tuple bidirectional flows</span></div>
+          <div class="pipe-arrow">↓</div>
+          <div class="pipe-step">Feature Extractor <span class="muted">84 CIC-IDS2017 statistics</span></div>
+          <div class="pipe-arrow">↓</div>
+          <div class="pipe-step warm">FastAPI · /predict <span class="muted">scaler · SelectKBest (84→50)</span></div>
+          <div class="pipe-arrow">↓</div>
+          <div class="pipe-step warm">RF + XGBoost Soft-Voting <span class="muted">+ SHAP TreeExplainer top-5</span></div>
+          <div class="pipe-arrow">↓</div>
+          <div class="pipe-step">Alert · Grafana · SSE Dashboard</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+
+        <div class="card purple">
+          <h3>Why This Design</h3>
+          <ul>
+            <li><strong>Decoupled tiers</strong> — stateless classifier API is language-agnostic and independently benchmarkable.</li>
+            <li><strong>Tree ensemble</strong> — tabular flow features don't need deep learning; trees train faster and admit exact SHAP.</li>
+            <li><strong>Threaded predictions</strong> — ThreadPoolExecutor keeps capture running during 10–100 ms API round-trips.</li>
+            <li><strong>SMOTE + class weights</strong> — addresses severe class imbalance in CIC-IDS2017.</li>
+          </ul>
+        </div>
+
+        <div class="card green">
+          <h3>Headline Results</h3>
+          <table class="results-table">
+            <thead>
+              <tr><th>Model</th><th>Accuracy</th><th>Macro-F1</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>XGBoost</td><td><strong>99.44%</strong></td><td>0.834</td></tr>
+              <tr><td>Random Forest</td><td><strong>99.40%</strong></td><td>0.873</td></tr>
+              <tr><td>Ensemble (voting)</td><td><strong>99.4%</strong></td><td>0.86</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:6px; font-size:10.5px;">13 of 15 attack classes achieve ≥80% class accuracy on a held-out test set of 311,746 flows; randomised evaluation 91.9% ± 1.2% (95% CI).</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Tech stack -->
+    <div class="section">
+      <p class="section-title">02 · Technology Stack</p>
+      <div class="stack-pills">
+        <span class="pill">Python 3.11</span>
+        <span class="pill">scikit-learn</span>
+        <span class="pill">XGBoost</span>
+        <span class="pill">SHAP</span>
+        <span class="pill">Scapy</span>
+        <span class="pill">FastAPI</span>
+        <span class="pill">Flask (SSE)</span>
+        <span class="pill">Prometheus</span>
+        <span class="pill">Grafana</span>
+        <span class="pill">Docker Compose</span>
+        <span class="pill">CIC-IDS2017</span>
+        <span class="pill">SMOTE</span>
+      </div>
+    </div>
+
+    <!-- Key contributions -->
+    <div class="section">
+      <p class="section-title">03 · Key Contributions</p>
+      <div class="body-grid" style="margin-top:6px;">
+        <div class="card">
+          <h3>What's novel</h3>
+          <ul>
+            <li><strong>End-to-end pipeline</strong> from raw packets to explainable verdict — not just a model on static CSVs.</li>
+            <li><strong>Per-prediction SHAP</strong> top-5 attributions make every alert auditable by a human analyst.</li>
+            <li><strong>Production-shaped</strong> — rate-limited API, metrics, Grafana dashboard, reproducible Docker stack.</li>
+          </ul>
+        </div>
+        <div class="card warm">
+          <h3>Evaluation rigour</h3>
+          <ul>
+            <li><strong>Randomised evaluation</strong> with 95% CI bounds, not a single lucky split.</li>
+            <li><strong>Live-traffic demo</strong> replays CIC-IDS2017 PCAPs against the running API to prove wire-to-alert latency.</li>
+            <li><strong>Confusion matrix &amp; SHAP global importance</strong> reported per class — failure modes made visible.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer contact + QR -->
+    <div class="footer">
+      <div class="contact">
+        <h3>Folosiye Adegbola</h3>
+        <p class="role">BSc (Hons) Software Development · South East Technological University</p>
+        <ul class="contact-list">
+          <li><span class="k">Email</span><span class="v">petermakanjuola@outlook.com</span></li>
+          <li><span class="k">GitHub</span><span class="v">github.com/C00286234</span></li>
+          <li><span class="k">Repo</span><span class="v">ML-Based-NIDS</span></li>
+          <li><span class="k">Project</span><span class="v">FYP · 2026</span></li>
+        </ul>
+        <p style="margin-top:8px; font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">→ Scan the QR code for the full source, documentation, and report.</p>
+      </div>
+      <div class="qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=https%3A%2F%2Fgithub.com%2FC00286234%2FML-Based-NIDS" alt="QR code linking to github.com/C00286234/ML-Based-NIDS" />
+        <div class="qr-label">View Source →</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

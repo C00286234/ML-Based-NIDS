@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ML-Based Network Intrusion Detection System — Folosiye Adegbola</title>
+  <meta name="description" content="A real-time Network Intrusion Detection System using Random Forest and XGBoost ensemble classification with SHAP explainability. Final Year Project, SETU." />
+  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#top" class="nav-logo">NIDS<span class="accent">-ML</span></a>
+      <ul class="nav-links">
+        <li><a href="#abstract">Abstract</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#demo">Demo</a></li>
+        <li><a href="#results">Results</a></li>
+        <li><a href="#stack">Stack</a></li>
+        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header id="top" class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">Final Year Project · SETU</p>
+      <h1>A Machine Learning Based Approach Towards Building a <span class="accent">Real-Time</span> Network Intrusion Detection System</h1>
+      <p class="tagline">Random Forest + XGBoost ensemble classifying live network flows into 15 attack categories with SHAP-based explainability, Prometheus monitoring, and one-command deployment.</p>
+      <div class="cta-row">
+        <a href="https://github.com/C00286234/ML-Based-NIDS" class="btn btn-primary">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          View Code
+        </a>
+        <a href="downloads/Report.pdf" class="btn btn-secondary">Read Report</a>
+        <a href="#demo" class="btn btn-ghost">See Demo</a>
+      </div>
+      <dl class="hero-stats">
+        <div><dt>Test Accuracy</dt><dd>99.4<span>%</span></dd></div>
+        <div><dt>Balanced Acc.</dt><dd>91.9<span>%</span></dd></div>
+        <div><dt>Attack Classes</dt><dd>15</dd></div>
+        <div><dt>Features</dt><dd>84</dd></div>
+      </dl>
+    </div>
+    <div class="hero-bg" aria-hidden="true"></div>
+  </header>
+
+  <main>
+
+    <section id="abstract" class="section">
+      <div class="container">
+        <p class="section-kicker">01 · Abstract</p>
+        <h2>What this project does</h2>
+        <div class="two-col">
+          <div>
+            <p>Signature-based Intrusion Detection Systems fail on novel attacks — they can only match what they've already seen. This project builds a machine-learning NIDS that learns statistical patterns of benign and malicious traffic from the <a href="https://www.unb.ca/cic/datasets/ids-2017.html" target="_blank" rel="noopener">CIC-IDS2017</a> dataset and classifies live network flows in real time.</p>
+            <p>A soft-voting ensemble of a Random Forest and an XGBoost classifier distinguishes 15 distinct attack types (DDoS, Port Scan, Brute Force, Botnet, Heartbleed, Web Attacks, DoS variants, Infiltration) from benign traffic. Every prediction ships with a SHAP attribution showing the five features most responsible for the decision — addressing the explainability gap that normally makes ML-based security tooling unauditable.</p>
+            <p>The classifier is served by a FastAPI REST service with rate limiting, Prometheus metrics, and a Grafana dashboard. A real-time engine captures live packet traffic with Scapy, aggregates it into 5-tuple bidirectional flows, extracts the 84 CIC-IDS2017 features, and posts them to the API — demonstrating the full pipeline from wire to prediction to alert.</p>
+          </div>
+          <aside class="highlight-card">
+            <h3>Project at a glance</h3>
+            <ul>
+              <li><strong>Classifier:</strong> Random Forest + XGBoost (soft-voting)</li>
+              <li><strong>Dataset:</strong> CIC-IDS2017 (2.1M flows)</li>
+              <li><strong>Features:</strong> 84 → 50 (ANOVA F-test selection)</li>
+              <li><strong>Explainability:</strong> SHAP TreeExplainer (top-5)</li>
+              <li><strong>Classes:</strong> 15 attacks + benign</li>
+              <li><strong>Serving:</strong> FastAPI + Docker + Grafana</li>
+              <li><strong>Live capture:</strong> Scapy + threaded pipeline</li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture" class="section section-alt">
+      <div class="container">
+        <p class="section-kicker">02 · Architecture</p>
+        <h2>Two decoupled tiers</h2>
+        <p class="section-lead">The system is deliberately split into a stateless classification service and a live-traffic capture engine. Decoupling lets the service be evaluated and benchmarked independently of any deployment environment, while the engine adapts to whichever network it runs on.</p>
+
+        <div class="arch-diagram" role="img" aria-label="Architecture diagram showing packet capture, flow aggregation, feature extraction, and prediction pipeline">
+          <svg viewBox="0 0 1200 520" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7aa2f7" />
+              </marker>
+            </defs>
+            <rect x="20" y="20" width="560" height="480" rx="14" fill="none" stroke="#3b4261" stroke-dasharray="6 4" />
+            <text x="40" y="50" fill="#7aa2f7" font-family="Inter, sans-serif" font-size="14" font-weight="700">REAL-TIME ENGINE  ·  src/</text>
+
+            <rect x="60" y="80" width="480" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="300" y="110" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">Network Interface</text>
+            <text x="300" y="130" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">Scapy · BPF filter "ip" · kernel-level</text>
+
+            <path d="M 300 144 L 300 178" stroke="#7aa2f7" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+            <rect x="60" y="180" width="480" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="300" y="210" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">packet_capture.py</text>
+            <text x="300" y="230" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">Thread-safe queue · CapturedPacket</text>
+
+            <path d="M 300 244 L 300 278" stroke="#7aa2f7" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+            <rect x="60" y="280" width="480" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="300" y="310" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">flow_aggregator.py</text>
+            <text x="300" y="330" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">5-tuple bidirectional flows</text>
+
+            <path d="M 300 344 L 300 378" stroke="#7aa2f7" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+            <rect x="60" y="380" width="480" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="300" y="410" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">feature_extractor.py</text>
+            <text x="300" y="430" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">84 CIC-IDS2017 statistics per flow</text>
+
+            <path d="M 540 412 L 650 412" stroke="#bb9af7" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+            <text x="595" y="400" fill="#bb9af7" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11">HTTP POST</text>
+            <text x="595" y="430" fill="#bb9af7" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11">/predict</text>
+
+            <rect x="620" y="20" width="560" height="480" rx="14" fill="none" stroke="#3b4261" stroke-dasharray="6 4" />
+            <text x="640" y="50" fill="#f7768e" font-family="Inter, sans-serif" font-size="14" font-weight="700">CLASSIFICATION SERVICE  ·  api/</text>
+
+            <rect x="660" y="80" width="480" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="900" y="110" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">FastAPI app.py</text>
+            <text x="900" y="130" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">/predict · /batch_predict · /metrics</text>
+
+            <path d="M 900 144 L 900 178" stroke="#f7768e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+            <rect x="660" y="180" width="480" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="900" y="210" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">Preprocessing</text>
+            <text x="900" y="230" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">StandardScaler → SelectKBest (84→50)</text>
+
+            <path d="M 900 244 L 900 278" stroke="#f7768e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+            <rect x="660" y="280" width="230" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="775" y="310" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">Random Forest</text>
+            <text x="775" y="330" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">200 trees · depth 20</text>
+
+            <rect x="910" y="280" width="230" height="64" rx="10" fill="#1f2335" stroke="#565f89" />
+            <text x="1025" y="310" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">XGBoost</text>
+            <text x="1025" y="330" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">300 rounds · depth 10</text>
+
+            <path d="M 775 344 L 850 378" stroke="#f7768e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+            <path d="M 1025 344 L 950 378" stroke="#f7768e" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+            <rect x="660" y="380" width="480" height="64" rx="10" fill="#1f2335" stroke="#9ece6a" />
+            <text x="900" y="410" fill="#c0caf5" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600">Soft-voting ensemble + SHAP top-5</text>
+            <text x="900" y="430" fill="#737aa2" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12">{ prediction, confidence, is_attack, shap }</text>
+          </svg>
+        </div>
+
+        <div class="arch-notes">
+          <div class="note-card">
+            <h4>Why decouple?</h4>
+            <p>The API is language-agnostic, horizontally scalable, and independently deployable. Any consumer that can produce a flow feature vector — the real-time engine, a batch job, a PCAP analyser — can query it identically.</p>
+          </div>
+          <div class="note-card">
+            <h4>Why threaded predictions?</h4>
+            <p>A single prediction round-trip is 10–100 ms. A ThreadPoolExecutor of four workers lets the engine's main loop immediately continue processing new packets while predictions complete asynchronously.</p>
+          </div>
+          <div class="note-card">
+            <h4>Why RF + XGBoost?</h4>
+            <p>Tabular flow features don't benefit from deep-learning inductive biases. Tree ensembles train faster, admit exact SHAP attribution, and the RF/XGB pairing combines variance reduction (bagging) with bias reduction (boosting).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo" class="section">
+      <div class="container">
+        <p class="section-kicker">03 · Live Demo</p>
+        <h2>System in action</h2>
+        <p class="section-lead">End-to-end run of the demonstration traffic simulator replaying CIC-IDS2017 attacks against the live API. The Flask dashboard shows detections streaming in via Server-Sent Events, with SHAP attributions expanding on click.</p>
+
+        <div class="demo-gallery">
+          <figure>
+            <img src="assets/figures/dashboard.png" alt="Flask dashboard showing live attack detections" />
+            <figcaption>Live detection feed with SHAP top-5 attributions per flow</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/figures/grafana.png" alt="Grafana dashboard with NIDS metrics" />
+            <figcaption>11-panel Grafana dashboard: attack rate, latency percentiles, traffic over time</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" class="section section-alt">
+      <div class="container">
+        <p class="section-kicker">04 · Results</p>
+        <h2>Evaluation</h2>
+
+        <div class="metrics-grid">
+          <div class="metric">
+            <p class="metric-label">Test accuracy (311,746 flows)</p>
+            <p class="metric-value">99.44<span>%</span></p>
+            <p class="metric-sub">XGBoost · macro-F1 0.834</p>
+          </div>
+          <div class="metric">
+            <p class="metric-label">Test accuracy (311,746 flows)</p>
+            <p class="metric-value">99.40<span>%</span></p>
+            <p class="metric-sub">Random Forest · macro-F1 0.873</p>
+          </div>
+          <div class="metric">
+            <p class="metric-label">Randomised balanced</p>
+            <p class="metric-value">91.9<span>%</span></p>
+            <p class="metric-sub">± 1.2% · 95% CI [90.5, 93.3]</p>
+          </div>
+          <div class="metric">
+            <p class="metric-label">Classes at ≥80% accuracy</p>
+            <p class="metric-value">13<span>/15</span></p>
+            <p class="metric-sub">XSS and Web-BF limited by data</p>
+          </div>
+        </div>
+
+        <div class="results-figs">
+          <figure>
+            <img src="assets/figures/confusion_matrix.png" alt="XGBoost confusion matrix across 16 classes" />
+            <figcaption>XGBoost confusion matrix on held-out test set</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/figures/shap_global.png" alt="Global SHAP feature importance" />
+            <figcaption>Global SHAP feature importance — the 20 features driving most decisions</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/figures/model_comparison.png" alt="Model comparison chart" />
+            <figcaption>Per-class precision/recall comparison between RF and XGBoost</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/figures/label_distribution.png" alt="CIC-IDS2017 label distribution" />
+            <figcaption>CIC-IDS2017 class distribution — illustrating the imbalance SMOTE addresses</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="stack" class="section">
+      <div class="container">
+        <p class="section-kicker">05 · Technology Stack</p>
+        <h2>Built with</h2>
+        <div class="stack-grid">
+          <div class="stack-card"><span class="stack-icon">🐍</span><h4>Python 3.11</h4><p>Primary language</p></div>
+          <div class="stack-card"><span class="stack-icon">🌲</span><h4>scikit-learn</h4><p>Random Forest · SMOTE · scaling</p></div>
+          <div class="stack-card"><span class="stack-icon">⚡</span><h4>XGBoost</h4><p>Gradient boosting ensemble</p></div>
+          <div class="stack-card"><span class="stack-icon">🔍</span><h4>SHAP</h4><p>TreeExplainer · per-prediction attribution</p></div>
+          <div class="stack-card"><span class="stack-icon">📡</span><h4>Scapy</h4><p>Live packet capture · BPF filtering</p></div>
+          <div class="stack-card"><span class="stack-icon">🚀</span><h4>FastAPI</h4><p>REST API · Swagger · Pydantic</p></div>
+          <div class="stack-card"><span class="stack-icon">🧪</span><h4>Flask</h4><p>Operator dashboard · SSE</p></div>
+          <div class="stack-card"><span class="stack-icon">📊</span><h4>Prometheus + Grafana</h4><p>Metrics · 11-panel dashboard</p></div>
+          <div class="stack-card"><span class="stack-icon">🐳</span><h4>Docker</h4><p>Compose stack · multi-stage build</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="downloads" class="section section-alt">
+      <div class="container">
+        <p class="section-kicker">06 · Downloads & Links</p>
+        <h2>Resources</h2>
+        <div class="downloads-grid">
+          <a class="download-card" href="downloads/report.pdf">
+            <div class="download-icon">📄</div>
+            <h4>Project Report</h4>
+            <p>Full FYP report · PDF</p>
+            <span class="download-link">Download →</span>
+          </a>
+          <a class="download-card" href="https://github.com/C00286234/ML-Based-NIDS">
+            <div class="download-icon">💻</div>
+            <h4>Source Code</h4>
+            <p>Complete implementation on GitHub</p>
+            <span class="download-link">View repo →</span>
+          </a>
+          <a class="download-card" href="https://www.unb.ca/cic/datasets/ids-2017.html" target="_blank" rel="noopener">
+            <div class="download-icon">🗃️</div>
+            <h4>CIC-IDS2017 Dataset</h4>
+            <p>Canadian Institute for Cybersecurity</p>
+            <span class="download-link">Visit dataset →</span>
+          </a>
+          
+          
+          <a class="download-card" href="https://shap.readthedocs.io/" target="_blank" rel="noopener">
+            <div class="download-icon">📚</div>
+            <h4>SHAP Documentation</h4>
+            <p>The explainability library used</p>
+            <span class="download-link">External →</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="container">
+        <p class="section-kicker">07 · About</p>
+        <h2>About the author</h2>
+        <div class="about-row">
+          <div class="about-text">
+            <h3>Folosiye Adegbola</h3>
+            <p class="about-role">BSc (Hons) Software Development · SETU</p>
+            <p>This project was completed as my Final Year Project at South East Technological University. I'm interested in the intersection of machine learning and cybersecurity — specifically in making ML-based security systems auditable, deployable, and explainable rather than black-box curiosities.</p>
+            <p>The supervisor, examiners, and the Canadian Institute for Cybersecurity (for the CIC-IDS2017 dataset) are gratefully acknowledged.</p>
+            <div class="contact-row">
+              <a href="mailto:petermakanjuola@outlook.com" class="btn btn-ghost">Email</a>
+              <a href="https://github.com/C00286234" class="btn btn-ghost">GitHub</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© 2026 Folosiye Adegbola · Final Year Project · South East Technological University</p>
+      <p><a href="#top">Back to top ↑</a></p>
+    </div>
+  </footer>
+
+  <script src="assets/script.js" defer></script>
+</body>
+</html>

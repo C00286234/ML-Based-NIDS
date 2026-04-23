@@ -108,14 +108,21 @@ Live packet capture requires [Npcap](https://npcap.com/) on Windows or libpcap o
 
 ### Dataset Creation
 
-To create the dataset for training, download the raw [CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) dataset and run the preprocessing and feature engineering scripts in sequence:
+To create the dataset for training, download the raw [CIC-IDS2017](https://www.unb.ca/cic/datasets/ids-2017.html) dataset and run the preprocessing script:
 
 ```
 python 02_data_preprocessing.py
-python 03_feature_engineering.py
 ```
 
-This pipeline reads the source CSVs, consolidates attack labels, cleans problematic values (infinity, NaN), applies StandardScaler normalisation, performs ANOVA-based feature selection (84 features reduced to 50), and applies SMOTE to the training set to address class imbalance. Upon completion, the processed data and transformation artifacts are saved to `data/processed/` and `models/` respectively.
+This reads the source CSVs, consolidates attack labels, cleans problematic values (infinity, NaN), and saves the cleaned dataset to `data/processed/cicids2017_cleaned.csv`.
+
+Then train the models:
+
+```
+python 04_model_training_improved.py
+```
+
+The training script applies StandardScaler normalisation, performs ANOVA-based feature selection (84 features reduced to 50), applies SMOTE to the training set to address class imbalance, and trains the Random Forest + XGBoost ensemble. Model artifacts are saved to `models/`.
 
 ### Local Mode
 
@@ -170,6 +177,7 @@ After startup the following services become available:
 | ------- | --- | ----------- |
 | NIDS API | http://localhost:8000 | — |
 | Swagger Docs | http://localhost:8000/docs | — |
+| Flask Dashboard | http://localhost:5001 | — |
 | Prometheus | http://localhost:9090 | — |
 | Grafana | http://localhost:3000 | admin / nids-admin |
 

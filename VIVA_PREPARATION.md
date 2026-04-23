@@ -46,20 +46,14 @@ CIC-IDS2017 Raw CSVs (5 days)
 cicids2017_cleaned.csv (2.1M flows, 84 features)
     |
     v
-[03_feature_engineering.py] -- Scale, select top 50, SMOTE balance
+[04_model_training_improved.py] -- Scale, select top 50, SMOTE balance, train RF+XGBoost
     |
     v
-X_train/val/test .npy + scaler.pkl + feature_selector.pkl + label_encoder.pkl
-    |
-    v
-[04_model_training_improved.py] -- Train RF + XGBoost, evaluate, save
-    |
-    v
-random_forest_model.pkl + xgboost_model.pkl
+random_forest_model.pkl + xgboost_model.pkl + scaler.pkl + feature_selector.pkl + label_encoder.pkl
     |
     +---> [api/app.py: FastAPI] ---- /predict, /batch_predict, /stats, /metrics
     |          |
-    |          +---> [dashboard/app.py: Flask] ---- Real-time status page
+    |          +---> [dashboard/app.py: Flask] ---- Live detection feed with SHAP explanations
     |          |
     |          +---> [Prometheus] --> [Grafana] ---- 11-panel monitoring dashboard
     |
@@ -164,7 +158,7 @@ IP addresses are identifiers, not behavioural features. A model trained on speci
 
 ## 4. FEATURE ENGINEERING
 
-**File**: `03_feature_engineering.py` (350 lines)
+Feature engineering is performed during model training in `04_model_training_improved.py` (not as a separate pipeline step). It includes the following transformations:
 
 ### Scaling: StandardScaler
 - Transforms each feature to zero mean and unit variance
@@ -638,11 +632,13 @@ Passwords and webhook URLs use `${VAR_NAME}` syntax in config, resolved at runti
 ## 15. DASHBOARD & MONITORING
 
 ### Flask Dashboard (`dashboard/app.py`, port 5001)
-- Lightweight real-time status page
-- Polls the API `/stats` endpoint every 5 seconds
-- Shows: total predictions, attack count, attack rate, recent predictions
+- Live detection feed with real-time updates via Server-Sent Events (SSE)
+- Displays individual detections with expandable SHAP bars (top 5 contributing features per prediction)
+- Severity badges (critical/high/medium/low) with configurable thresholds
+- Browser notifications for high-confidence detections with silence period
+- Attack severity tracking and top talker identification
 - Dark theme (Catppuccin Mocha colour scheme)
-- Single-page design (no navigation needed)
+- Single-page design with no navigation needed
 
 ### Prometheus (port 9090)
 - Scrapes `/metrics` endpoint every 15 seconds
@@ -667,9 +663,9 @@ Passwords and webhook URLs use `${VAR_NAME}` syntax in config, resolved at runti
 
 ### Why three monitoring systems
 Each serves a different purpose:
-- **Flask dashboard**: Quick operational overview, no setup needed
-- **Prometheus**: Metric collection and storage, time-series queries
-- **Grafana**: Rich visualisation, alerting rules, historical analysis
+- **Flask dashboard**: Real-time per-flow visibility with explainability (SHAP), ideal for SOC operators to investigate individual alerts
+- **Prometheus**: Time-series metric collection and storage, enables querying historical trends and performance patterns
+- **Grafana**: Rich dashboards for SRE/operations to monitor system health, latency, throughput, and long-term trends
 
 ---
 
@@ -686,16 +682,17 @@ This reduces the final image size by excluding build tools (gcc, pip cache, etc.
 - Health check: `curl http://localhost:8000/health`
 - Exposed port: 8000
 
-### Docker Compose (3 services)
+### Docker Compose (4 services)
 ```yaml
-nids-api:      port 8000, CPU: 2 cores, RAM: 4GB
-prometheus:    port 9090, CPU: 0.5 cores, RAM: 512MB
-grafana:       port 3000, CPU: 0.5 cores, RAM: 256MB
+nids-api:        port 8000, CPU: 2 cores, RAM: 4GB
+nids-dashboard:  port 5001, CPU: 0.5 cores, RAM: 256MB
+prometheus:      port 9090, CPU: 0.5 cores, RAM: 512MB
+grafana:         port 3000, CPU: 0.5 cores, RAM: 256MB
 ```
 
-- Health check ordering: Prometheus waits for API to be healthy before starting
-- Models mounted read-only (`./models:/app/models:ro`)
-- Logs persisted via volume mount
+- Health check ordering: Dashboard waits for API; Prometheus waits for API; Grafana waits for Prometheus
+- API models mounted read-only (`./models:/app/models:ro`)
+- Logs persisted via volume mounts
 
 ### Why Docker
 - Reproducible environment (no "works on my machine" problems)

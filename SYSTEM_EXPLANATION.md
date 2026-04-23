@@ -569,7 +569,7 @@ An additional limitation affects live detection: the model was trained on flow f
 
 ### Flask Dashboard (port 5001)
 
-Real-time status page showing current attack counts, system health, and attack distribution. Auto-refreshes every 5 seconds.
+Live detection feed with real-time updates via Server-Sent Events (SSE). Displays individual detections with expandable SHAP bars showing top contributing features, severity badges, attack statistics, and browser notifications for high-confidence detections.
 
 ### Grafana (port 3000)
 
