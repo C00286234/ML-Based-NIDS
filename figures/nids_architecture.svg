@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">Two-tier NIDS architecture</title>
+  <desc id="desc">Architecture diagram showing a real-time packet capture engine posting flow features to a classification service over HTTP, with dashboard and monitoring support.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1d4ed8" />
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b91c1c" />
+    </marker>
+    <style>
+      .label { font: 700 14px Arial, Helvetica, sans-serif; fill: #0f172a; }
+      .title { font: 700 16px Arial, Helvetica, sans-serif; letter-spacing: 0.8px; }
+      .box-title { font: 700 15px Arial, Helvetica, sans-serif; fill: #111827; }
+      .box-body { font: 12px Consolas, "Courier New", monospace; fill: #475569; }
+      .note { font: 12px Arial, Helvetica, sans-serif; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="520" fill="#ffffff" />
+
+  <rect x="24" y="24" width="560" height="472" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" />
+  <text x="48" y="54" class="title" fill="#1d4ed8">REAL-TIME ENGINE  -  src/</text>
+
+  <rect x="64" y="86" width="480" height="66" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="2" />
+  <text x="304" y="115" class="box-title" text-anchor="middle">Network Interface</text>
+  <text x="304" y="136" class="box-body" text-anchor="middle">Scapy - BPF filter "ip" - kernel level capture</text>
+
+  <line x1="304" y1="152" x2="304" y2="186" stroke="#1d4ed8" stroke-width="2.5" marker-end="url(#arrow-blue)" />
+
+  <rect x="64" y="188" width="480" height="66" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="2" />
+  <text x="304" y="217" class="box-title" text-anchor="middle">packet_capture.py</text>
+  <text x="304" y="238" class="box-body" text-anchor="middle">CapturedPacket objects placed on a thread-safe queue</text>
+
+  <line x1="304" y1="254" x2="304" y2="288" stroke="#1d4ed8" stroke-width="2.5" marker-end="url(#arrow-blue)" />
+
+  <rect x="64" y="290" width="480" height="66" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="2" />
+  <text x="304" y="319" class="box-title" text-anchor="middle">flow_aggregator.py</text>
+  <text x="304" y="340" class="box-body" text-anchor="middle">Bidirectional 5-tuple flow assembly and timeout logic</text>
+
+  <line x1="304" y1="356" x2="304" y2="390" stroke="#1d4ed8" stroke-width="2.5" marker-end="url(#arrow-blue)" />
+
+  <rect x="64" y="392" width="480" height="66" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="2" />
+  <text x="304" y="421" class="box-title" text-anchor="middle">feature_extractor.py</text>
+  <text x="304" y="442" class="box-body" text-anchor="middle">84 CIC-IDS2017 statistical features per completed flow</text>
+
+  <rect x="616" y="24" width="560" height="472" rx="16" fill="#fff7ed" stroke="#fed7aa" stroke-width="2" />
+  <text x="640" y="54" class="title" fill="#b91c1c">CLASSIFICATION SERVICE  -  api/</text>
+
+  <rect x="656" y="86" width="480" height="66" rx="10" fill="#ffffff" stroke="#fda4af" stroke-width="2" />
+  <text x="896" y="115" class="box-title" text-anchor="middle">FastAPI app.py</text>
+  <text x="896" y="136" class="box-body" text-anchor="middle">/predict  -  /batch_predict  -  /metrics</text>
+
+  <line x1="896" y1="152" x2="896" y2="186" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#arrow-red)" />
+
+  <rect x="656" y="188" width="480" height="66" rx="10" fill="#ffffff" stroke="#fda4af" stroke-width="2" />
+  <text x="896" y="217" class="box-title" text-anchor="middle">Preprocessing</text>
+  <text x="896" y="238" class="box-body" text-anchor="middle">StandardScaler -> SelectKBest (84 -> 50)</text>
+
+  <line x1="896" y1="254" x2="896" y2="288" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#arrow-red)" />
+
+  <rect x="656" y="290" width="230" height="66" rx="10" fill="#ffffff" stroke="#fda4af" stroke-width="2" />
+  <text x="771" y="319" class="box-title" text-anchor="middle">Random Forest</text>
+  <text x="771" y="340" class="box-body" text-anchor="middle">200 trees - depth 20</text>
+
+  <rect x="906" y="290" width="230" height="66" rx="10" fill="#ffffff" stroke="#fda4af" stroke-width="2" />
+  <text x="1021" y="319" class="box-title" text-anchor="middle">XGBoost</text>
+  <text x="1021" y="340" class="box-body" text-anchor="middle">300 rounds - depth 10</text>
+
+  <line x1="771" y1="356" x2="850" y2="392" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#arrow-red)" />
+  <line x1="1021" y1="356" x2="942" y2="392" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#arrow-red)" />
+
+  <rect x="656" y="392" width="480" height="66" rx="10" fill="#ffffff" stroke="#fb7185" stroke-width="2" />
+  <text x="896" y="421" class="box-title" text-anchor="middle">Soft-voting ensemble + SHAP top-5</text>
+  <text x="896" y="442" class="box-body" text-anchor="middle">{ prediction, confidence, is_attack, shap }</text>
+
+  <line x1="544" y1="425" x2="656" y2="425" stroke="#7c3aed" stroke-width="3" marker-end="url(#arrow-red)" />
+  <text x="600" y="408" class="label" text-anchor="middle" fill="#7c3aed">HTTP POST /predict</text>
+  <text x="600" y="445" class="note" text-anchor="middle">Feature vectors move from the engine to the classifier over REST.</text>
+
+  <rect x="456" y="110" width="288" height="60" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="2" />
+  <text x="600" y="135" class="box-title" text-anchor="middle">Operational Monitoring</text>
+  <text x="600" y="156" class="box-body" text-anchor="middle">Flask dashboard - Prometheus - Grafana</text>
+
+  <line x1="600" y1="170" x2="600" y2="208" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="6 5" />
+  <line x1="600" y1="208" x2="600" y2="310" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="6 5" />
+
+  <text x="600" y="486" class="note" text-anchor="middle">The classifier and live-capture engine are intentionally decoupled so they can be tested, deployed, and scaled independently.</text>
+</svg>
