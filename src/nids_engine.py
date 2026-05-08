@@ -12,6 +12,7 @@ import signal
 import logging
 import argparse
 import threading
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, Any, Optional, List
@@ -19,11 +20,16 @@ from collections import defaultdict, deque
 
 import yaml
 import requests
+import pandas as pd
 
 from packet_capture import PacketCapture, list_interfaces
 from flow_aggregator import FlowAggregator, Flow
 from feature_extractor import FeatureExtractor
 from alerting import AlertManager
+
+# Feature names shared with the API
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.constants import FEATURE_NAMES_84
 
 # Configure logging
 logging.basicConfig(
@@ -92,15 +98,25 @@ class NIDSEngine:
         engine.start()  # Blocks until Ctrl+C
     """
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, replay_csv: Optional[str] = None,
+                 replay_speed: float = 3.0, replay_attack_ratio: float = 0.3):
         """
         Initialize the NIDS engine.
 
         Args:
             config_path: Path to YAML configuration file
+            replay_csv: Path to CIC-IDS2017 CSV for replay mode (None = live capture)
+            replay_speed: Flows per second in replay mode
+            replay_attack_ratio: Proportion of attack traffic in replay mode (0.0-1.0)
         """
         self.config_path = config_path
         self.config = self._load_config(config_path)
+
+        # Replay mode settings
+        self._replay_csv = replay_csv
+        self._replay_speed = replay_speed
+        self._replay_attack_ratio = replay_attack_ratio
+        self._replay_data = None
 
         # Initialize components
         self._init_logging()
@@ -580,27 +596,33 @@ class NIDSEngine:
     def _print_statistics(self) -> None:
         """Print current statistics."""
         uptime = time.time() - self._stats["start_time"]
-
-        capture_stats = self.packet_capture.get_statistics()
-        flow_stats = self.flow_aggregator.get_statistics()
+        is_replay = self._replay_csv is not None
 
         print("\n" + "=" * 70)
-        print(f"NIDS Engine Statistics (uptime: {uptime:.1f}s)")
+        mode_tag = " [REPLAY]" if is_replay else ""
+        print(f"NIDS Engine Statistics{mode_tag} (uptime: {uptime:.1f}s)")
         print("=" * 70)
 
-        total_pkts = capture_stats['packets_captured'] + capture_stats['packets_dropped']
-        drop_pct = (capture_stats['packets_dropped'] / total_pkts * 100) if total_pkts > 0 else 0
+        if not is_replay:
+            capture_stats = self.packet_capture.get_statistics()
+            flow_stats = self.flow_aggregator.get_statistics()
 
-        print(f"\nPacket Capture:")
-        print(f"  Captured:    {capture_stats['packets_captured']:,}")
-        print(f"  Dropped:     {capture_stats['packets_dropped']:,} ({drop_pct:.1f}%)")
-        print(f"  Queue size:  {capture_stats['queue_size']:,}")
-        print(f"  Rate:        {capture_stats['packets_per_second']:.1f} pps")
+            total_pkts = capture_stats['packets_captured'] + capture_stats['packets_dropped']
+            drop_pct = (capture_stats['packets_dropped'] / total_pkts * 100) if total_pkts > 0 else 0
 
-        print(f"\nFlow Aggregation:")
-        print(f"  Active flows:    {flow_stats['active_flows']:,}")
-        print(f"  Total created:   {flow_stats['total_flows_created']:,}")
-        print(f"  Total completed: {flow_stats['total_flows_completed']:,}")
+            print(f"\nPacket Capture:")
+            print(f"  Captured:    {capture_stats['packets_captured']:,}")
+            print(f"  Dropped:     {capture_stats['packets_dropped']:,} ({drop_pct:.1f}%)")
+            print(f"  Queue size:  {capture_stats['queue_size']:,}")
+            print(f"  Rate:        {capture_stats['packets_per_second']:.1f} pps")
+
+            print(f"\nFlow Aggregation:")
+            print(f"  Active flows:    {flow_stats['active_flows']:,}")
+            print(f"  Total created:   {flow_stats['total_flows_created']:,}")
+            print(f"  Total completed: {flow_stats['total_flows_completed']:,}")
+        else:
+            print(f"\nReplay Source: {os.path.basename(self._replay_csv)}")
+            print(f"  Speed: {self._replay_speed:.1f} flows/sec  |  Attack ratio: {self._replay_attack_ratio:.0%}")
 
         print(f"\nPredictions:")
         print(f"  Flows processed: {self._stats['flows_processed']:,}")
@@ -618,6 +640,126 @@ class NIDSEngine:
                 print(f"  {attack_type}: {count}")
 
         print("=" * 70)
+
+    def _load_replay_data(self) -> None:
+        """Load CIC-IDS2017 CSV and split into benign/attack pools for replay."""
+        logger.info(f"Loading replay data from {self._replay_csv}")
+        print(f"\n  Loading dataset: {self._replay_csv}")
+
+        df = pd.read_csv(self._replay_csv)
+        feature_cols = [c for c in df.columns if c != 'Label']
+
+        self._replay_data = {"benign": [], "attacks": {}}
+        max_per_class = 5000
+
+        for label, group in df.groupby('Label'):
+            if len(group) > max_per_class:
+                group = group.sample(n=max_per_class, random_state=42)
+
+            rows = list(group[feature_cols].values)
+            random.shuffle(rows)
+
+            if label == 'BENIGN':
+                self._replay_data["benign"] = rows
+            else:
+                self._replay_data["attacks"][label] = rows
+
+        self._replay_indices = {
+            label: 0 for label in
+            ["benign"] + list(self._replay_data["attacks"].keys())
+        }
+
+        print(f"  Loaded {len(self._replay_data['benign']):,} benign flows")
+        for label, rows in sorted(self._replay_data["attacks"].items()):
+            print(f"  Loaded {len(rows):,} {label} flows")
+        print(f"  Attack types: {len(self._replay_data['attacks'])}")
+        print(f"  Attack ratio: {self._replay_attack_ratio:.0%}")
+        print(f"  Speed: {self._replay_speed:.1f} flows/sec")
+
+    def _get_replay_flow(self) -> tuple:
+        """Get the next flow from the replay pool. Returns (features_array, label)."""
+        if random.random() < self._replay_attack_ratio and self._replay_data["attacks"]:
+            label = random.choice(list(self._replay_data["attacks"].keys()))
+            pool = self._replay_data["attacks"][label]
+        else:
+            label = "BENIGN"
+            pool = self._replay_data["benign"]
+
+        if not pool:
+            pool = self._replay_data["benign"]
+            label = "BENIGN"
+
+        idx = self._replay_indices.get(label, 0)
+        row = pool[idx % len(pool)]
+        self._replay_indices[label] = idx + 1
+        return row, label
+
+    def _replay_loop(self) -> None:
+        """Replay loop: reads CSV flows and sends them through the prediction pipeline."""
+        stats_interval = self.config.get("performance", {}).get("stats_interval", 10)
+        last_stats = time.time()
+
+        logger.info("Replay loop started")
+        print(f"\n  Replaying flows at {self._replay_speed:.1f}/sec "
+              f"({self._replay_attack_ratio:.0%} attacks)\n")
+
+        while self._running and not self._stop_event.is_set():
+            try:
+                row, true_label = self._get_replay_flow()
+
+                # Build feature dict from CSV row
+                feature_dict = {
+                    name: float(val) for name, val in zip(FEATURE_NAMES_84, row)
+                }
+
+                # Synthesize a Flow object for _handle_prediction
+                src_ip = f"192.168.10.{random.randint(1, 254)}"
+                dst_ip = f"10.0.0.{random.randint(1, 254)}"
+                src_port = int(feature_dict.get("Src Port", 0))
+                dst_port = int(feature_dict.get("Dst Port", 0))
+                protocol = int(feature_dict.get("Protocol", 6))
+                total_pkts = int(feature_dict.get("Total Fwd Packet", 0) +
+                                 feature_dict.get("Total Bwd packets", 0))
+
+                flow = Flow(
+                    flow_id=f"{src_ip}:{src_port}-{dst_ip}:{dst_port}-{protocol}",
+                    src_ip=src_ip,
+                    dst_ip=dst_ip,
+                    src_port=src_port,
+                    dst_port=dst_port,
+                    protocol=protocol,
+                    start_time=time.time(),
+                    last_time=time.time(),
+                )
+                # Set total_packets via dummy packet lists for the property
+                flow.fwd_packets = [None] * max(total_pkts, 1)
+                flow.bwd_packets = []
+
+                # Submit prediction to thread pool
+                future = self._prediction_pool.submit(
+                    self._predict_and_handle, flow, feature_dict
+                )
+                self._pending_futures.append(future)
+
+                with self._stats_lock:
+                    self._stats["flows_processed"] += 1
+
+                # Clean up completed futures
+                self._collect_completed_predictions()
+
+                # Periodic statistics
+                current_time = time.time()
+                if current_time - last_stats > stats_interval:
+                    self._print_statistics()
+                    last_stats = current_time
+
+                # Pace the replay
+                if self._replay_speed > 0:
+                    time.sleep(1.0 / self._replay_speed)
+
+            except Exception as e:
+                logger.error(f"Error in replay loop: {e}")
+                time.sleep(1)
 
     def _main_loop(self) -> None:
         """Main processing loop."""
@@ -672,8 +814,13 @@ class NIDSEngine:
             logger.warning("NIDS Engine is already running")
             return
 
+        is_replay = self._replay_csv is not None
+
         print("\n" + "=" * 70)
-        print("    NETWORK INTRUSION DETECTION SYSTEM")
+        if is_replay:
+            print("    NETWORK INTRUSION DETECTION SYSTEM  [REPLAY MODE]")
+        else:
+            print("    NETWORK INTRUSION DETECTION SYSTEM")
         print("=" * 70)
 
         # Check API health
@@ -685,14 +832,18 @@ class NIDSEngine:
             if response.lower() != 'y':
                 return
 
-        # Show network interfaces
-        print("\nAvailable network interfaces:")
-        interfaces = list_interfaces()
-        for i, iface in enumerate(interfaces):
-            print(f"  {i}: {iface}")
+        if is_replay:
+            # Load CSV data for replay
+            self._load_replay_data()
+        else:
+            # Show network interfaces
+            print("\nAvailable network interfaces:")
+            interfaces = list_interfaces()
+            for i, iface in enumerate(interfaces):
+                print(f"  {i}: {iface}")
 
-        interface = self.config.get("network", {}).get("interface")
-        print(f"\nUsing interface: {interface or 'default'}")
+            interface = self.config.get("network", {}).get("interface")
+            print(f"\nUsing interface: {interface or 'default'}")
 
         # Start components
         print("\nStarting NIDS components...")
@@ -700,16 +851,25 @@ class NIDSEngine:
         self._stats["start_time"] = time.time()
 
         try:
-            # Start packet capture
-            self.packet_capture.start()
-            logger.info("Packet capture started")
+            if is_replay:
+                logger.info("Engine starting in REPLAY mode")
+                print("\n" + "=" * 70)
+                print("NIDS Engine is running (REPLAY MODE). Press Ctrl+C to stop.")
+                print("=" * 70 + "\n")
 
-            print("\n" + "=" * 70)
-            print("NIDS Engine is running. Press Ctrl+C to stop.")
-            print("=" * 70 + "\n")
+                # Run replay loop
+                self._replay_loop()
+            else:
+                # Start packet capture
+                self.packet_capture.start()
+                logger.info("Packet capture started")
 
-            # Run main loop
-            self._main_loop()
+                print("\n" + "=" * 70)
+                print("NIDS Engine is running. Press Ctrl+C to stop.")
+                print("=" * 70 + "\n")
+
+                # Run main loop
+                self._main_loop()
 
         except KeyboardInterrupt:
             print("\n\nShutdown requested...")
@@ -725,8 +885,11 @@ class NIDSEngine:
         self._running = False
         self._stop_event.set()
 
-        # Stop packet capture
-        self.packet_capture.stop()
+        is_replay = self._replay_csv is not None
+
+        if not is_replay:
+            # Stop packet capture
+            self.packet_capture.stop()
 
         # Wait for in-flight predictions to finish
         if self._pending_futures:
@@ -738,20 +901,21 @@ class NIDSEngine:
                     logger.error(f"Pending prediction error: {e}")
             self._pending_futures.clear()
 
-        # Process remaining flows
-        remaining_flows = self.flow_aggregator.force_complete_all()
-        logger.info(f"Processing {len(remaining_flows)} remaining flows...")
+        if not is_replay:
+            # Process remaining flows
+            remaining_flows = self.flow_aggregator.force_complete_all()
+            logger.info(f"Processing {len(remaining_flows)} remaining flows...")
 
-        for flow in remaining_flows:
-            try:
-                features = self.feature_extractor.extract_features(flow)
-                prediction = self._predict_flow(features, flow_id=flow.flow_id)
-                if prediction:
-                    self._handle_prediction(flow, features, prediction)
-                with self._stats_lock:
-                    self._stats["flows_processed"] += 1
-            except Exception as e:
-                logger.error(f"Error processing final flow: {e}")
+            for flow in remaining_flows:
+                try:
+                    features = self.feature_extractor.extract_features(flow)
+                    prediction = self._predict_flow(features, flow_id=flow.flow_id)
+                    if prediction:
+                        self._handle_prediction(flow, features, prediction)
+                    with self._stats_lock:
+                        self._stats["flows_processed"] += 1
+                except Exception as e:
+                    logger.error(f"Error processing final flow: {e}")
 
         # Shut down thread pool
         self._prediction_pool.shutdown(wait=True, cancel_futures=False)
@@ -772,7 +936,7 @@ class NIDSEngine:
             return
 
         uptime = time.time() - self._stats["start_time"] if self._stats["start_time"] else 0
-        capture_stats = self.packet_capture.get_statistics()
+        is_replay = self._replay_csv is not None
 
         summary_path = os.path.join(self._session_dir, "summary.txt")
         try:
@@ -780,14 +944,22 @@ class NIDSEngine:
                 f.write("NIDS Session Summary\n")
                 f.write("=" * 60 + "\n")
                 f.write(f"Date:     {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Mode:     {'REPLAY' if is_replay else 'LIVE CAPTURE'}\n")
                 f.write(f"Uptime:   {uptime:.1f}s ({uptime/60:.1f} min)\n")
-                f.write(f"Interface: {capture_stats.get('interface', 'N/A')}\n\n")
 
-                f.write("Packet Capture\n")
-                f.write("-" * 40 + "\n")
-                f.write(f"  Captured:  {capture_stats['packets_captured']:,}\n")
-                f.write(f"  Dropped:   {capture_stats['packets_dropped']:,}\n")
-                f.write(f"  Rate:      {capture_stats['packets_per_second']:.1f} pps\n\n")
+                if is_replay:
+                    f.write(f"CSV:      {self._replay_csv}\n")
+                    f.write(f"Speed:    {self._replay_speed:.1f} flows/sec\n")
+                    f.write(f"Attack ratio: {self._replay_attack_ratio:.0%}\n\n")
+                else:
+                    capture_stats = self.packet_capture.get_statistics()
+                    f.write(f"Interface: {capture_stats.get('interface', 'N/A')}\n\n")
+
+                    f.write("Packet Capture\n")
+                    f.write("-" * 40 + "\n")
+                    f.write(f"  Captured:  {capture_stats['packets_captured']:,}\n")
+                    f.write(f"  Dropped:   {capture_stats['packets_dropped']:,}\n")
+                    f.write(f"  Rate:      {capture_stats['packets_per_second']:.1f} pps\n\n")
 
                 f.write("Predictions\n")
                 f.write("-" * 40 + "\n")
@@ -841,6 +1013,23 @@ def main():
         action="store_true",
         help="List available network interfaces and exit"
     )
+    parser.add_argument(
+        "--replay",
+        metavar="CSV",
+        help="Replay CIC-IDS2017 flows from CSV instead of live capture"
+    )
+    parser.add_argument(
+        "--speed",
+        type=float,
+        default=3.0,
+        help="Flows per second in replay mode (default: 3.0)"
+    )
+    parser.add_argument(
+        "--attack-ratio",
+        type=float,
+        default=0.3,
+        help="Proportion of attack traffic in replay mode (default: 0.3)"
+    )
 
     args = parser.parse_args()
 
@@ -850,13 +1039,29 @@ def main():
             print(f"  {i}: {iface}")
         return
 
+    # Resolve replay CSV path
+    replay_csv = None
+    if args.replay:
+        replay_csv = args.replay
+        if not os.path.isabs(replay_csv):
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            replay_csv = os.path.join(project_root, replay_csv)
+        if not os.path.exists(replay_csv):
+            print(f"ERROR: Replay CSV not found: {replay_csv}")
+            sys.exit(1)
+
     # Create engine
-    engine = NIDSEngine(args.config)
+    engine = NIDSEngine(
+        args.config,
+        replay_csv=replay_csv,
+        replay_speed=args.speed,
+        replay_attack_ratio=args.attack_ratio,
+    )
 
     # Override config with command line arguments
     if args.interface:
         engine.config["network"]["interface"] = args.interface
-        engine.packet_capture.interface = args.interface  # Fix: update already-created PacketCapture
+        engine.packet_capture.interface = args.interface
     if args.api_url:
         engine.config["api"]["url"] = args.api_url
 

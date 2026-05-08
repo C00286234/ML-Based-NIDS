@@ -41,6 +41,12 @@ def main():
     parser.add_argument("-i", "--interface", default=None, help="Network interface (default: from config)")
     parser.add_argument("--api-only", action="store_true", help="Start API only")
     parser.add_argument("--engine-only", action="store_true", help="Start engine only (API must already be running)")
+    parser.add_argument("--replay", metavar="CSV", default=None,
+                        help="Replay CIC-IDS2017 flows from CSV instead of live capture")
+    parser.add_argument("--speed", type=float, default=3.0,
+                        help="Flows per second in replay mode (default: 3.0)")
+    parser.add_argument("--attack-ratio", type=float, default=0.3,
+                        help="Proportion of attack traffic in replay mode (default: 0.3)")
     args = parser.parse_args()
 
     # Session directory
@@ -104,8 +110,13 @@ def main():
             engine_cmd = [sys.executable, "-u", os.path.join(ROOT, "src", "nids_engine.py")]
             if args.interface:
                 engine_cmd += ["--interface", args.interface]
+            if args.replay:
+                engine_cmd += ["--replay", args.replay,
+                               "--speed", str(args.speed),
+                               "--attack-ratio", str(args.attack_ratio)]
 
-            print(f"\n[2] Starting NIDS Engine...")
+            mode_label = "NIDS Engine (REPLAY)" if args.replay else "NIDS Engine"
+            print(f"\n[2] Starting {mode_label}...")
             engine_proc = subprocess.Popen(
                 engine_cmd,
                 stdout=subprocess.PIPE,

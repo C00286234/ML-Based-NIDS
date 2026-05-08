@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NIDS Dashboard - Network Intrusion Detection System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -11,8 +13,15 @@
     <div class="container">
         <header class="header">
             <div class="header-content">
-                <h1>NIDS Dashboard</h1>
-                <p class="subtitle">Network Intrusion Detection System - Real-Time Monitoring</p>
+                <div class="header-shield">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>NIDS Dashboard</h1>
+                    <p class="subtitle">Network Intrusion Detection System &mdash; Real-Time Monitoring</p>
+                </div>
             </div>
             <div class="header-right">
                 <button class="notify-btn hidden" id="notify-btn" title="Enable browser notifications">
@@ -90,36 +99,38 @@
             </div>
         </section>
 
-        <section class="panel" id="feed-panel">
-            <div class="feed-header">
-                <h3 class="panel-title">Live Detection Feed</h3>
-                <button class="new-detections-pill hidden" id="new-pill">
-                    <span id="new-pill-count">0</span> new detections &#8593;
-                </button>
+        <section class="main-grid">
+            <div class="panel" id="feed-panel">
+                <div class="feed-header">
+                    <h3 class="panel-title">Live Detection Feed</h3>
+                    <button class="new-detections-pill hidden" id="new-pill">
+                        <span id="new-pill-count">0</span> new detections &#8593;
+                    </button>
+                </div>
+                <div class="sse-banner hidden" id="sse-banner">Disconnected, retrying&hellip;</div>
+                <div class="feed-list" id="feed-list">
+                    <p class="no-data" id="feed-empty">Waiting for detections&hellip;</p>
+                </div>
             </div>
-            <div class="sse-banner hidden" id="sse-banner">Disconnected, retrying&hellip;</div>
-            <div class="feed-list" id="feed-list">
-                <p class="no-data" id="feed-empty">Waiting for detections&hellip;</p>
-            </div>
-        </section>
 
-        <section class="three-across">
-            <div class="panel">
-                <h3 class="panel-title">Attack Distribution</h3>
-                <div class="chart-container">
-                    <canvas id="attack-chart"></canvas>
+            <div class="sidebar-stack">
+                <div class="panel">
+                    <h3 class="panel-title">Attack Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="attack-chart"></canvas>
+                    </div>
                 </div>
-            </div>
-            <div class="panel">
-                <h3 class="panel-title">Severity Breakdown</h3>
-                <div class="severity-bars" id="severity-bars">
-                    <p class="no-data">No data yet</p>
+                <div class="panel">
+                    <h3 class="panel-title">Severity Breakdown</h3>
+                    <div class="severity-bars" id="severity-bars">
+                        <p class="no-data">No data yet</p>
+                    </div>
                 </div>
-            </div>
-            <div class="panel">
-                <h3 class="panel-title">Top Talkers</h3>
-                <div class="top-talkers" id="top-talkers">
-                    <p class="no-data">No data yet</p>
+                <div class="panel">
+                    <h3 class="panel-title">Top Talkers</h3>
+                    <div class="top-talkers" id="top-talkers">
+                        <p class="no-data">No data yet</p>
+                    </div>
                 </div>
             </div>
         </section>

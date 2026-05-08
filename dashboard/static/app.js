@@ -43,13 +43,33 @@ function setConnected(ok) {
   txt.textContent = ok ? "Connected" : "Disconnected";
 }
 
+function animateStatValue(el) {
+  el.classList.remove("pulse");
+  void el.offsetWidth;
+  el.classList.add("pulse");
+}
+
 async function pollStats() {
   try {
     const res = await fetch("/api/status");
     const d = await res.json();
     setConnected(d.connected);
-    document.getElementById("total-predictions").textContent = fmt(d.metrics.total_predictions);
-    document.getElementById("total-attacks").textContent = fmt(d.metrics.total_attacks);
+
+    const predEl = document.getElementById("total-predictions");
+    const atkEl = document.getElementById("total-attacks");
+    const oldPred = predEl.textContent;
+    const oldAtk = atkEl.textContent;
+
+    predEl.textContent = fmt(d.metrics.total_predictions);
+    atkEl.textContent = fmt(d.metrics.total_attacks);
+
+    if (predEl.textContent !== oldPred) animateStatValue(predEl);
+    if (atkEl.textContent !== oldAtk) animateStatValue(atkEl);
+
+    if (d.metrics.total_attacks > 0) {
+      atkEl.classList.add("has-attacks");
+    }
+
     document.getElementById("attack-rate").textContent = d.attack_rate_percent + "% attack rate";
     document.getElementById("avg-latency").textContent = d.metrics.avg_prediction_time_ms.toFixed(1) + "ms";
     const up = d.metrics.uptime_seconds;
@@ -102,8 +122,9 @@ function updateDoughnut(distribution) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        cutout: "65%",
         plugins: {
-          legend: { position: "right", labels: { color: "#cdd6f4", font: { size: 11 } } },
+          legend: { position: "bottom", labels: { color: "#cdd6f4", font: { size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 } },
         },
       },
     });
@@ -151,20 +172,22 @@ function pushTimelineBucket(total, attacks) {
             label: "Benign",
             data: timelineData.benign,
             borderColor: "#a6e3a1",
-            backgroundColor: "rgba(166,227,161,0.1)",
+            backgroundColor: "rgba(166,227,161,0.08)",
             fill: true,
-            tension: 0.3,
+            tension: 0.4,
             pointRadius: 0,
+            borderWidth: 2,
           },
           {
             label: "Attack",
             data: timelineData.attack,
             borderColor: "#f38ba8",
-            backgroundColor: "rgba(243,139,168,0.15)",
+            backgroundColor: "rgba(243,139,168,0.12)",
             fill: true,
-            tension: 0.3,
-            pointRadius: 2,
+            tension: 0.4,
+            pointRadius: 3,
             pointBackgroundColor: "#f38ba8",
+            borderWidth: 2,
           },
         ],
       },
@@ -173,11 +196,20 @@ function pushTimelineBucket(total, attacks) {
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         scales: {
-          x: { ticks: { color: "#6c7086", maxTicksLimit: 10 }, grid: { color: "rgba(205,214,244,0.06)" } },
-          y: { beginAtZero: true, ticks: { color: "#6c7086" }, grid: { color: "rgba(205,214,244,0.06)" } },
+          x: {
+            ticks: { color: "#6c7086", maxTicksLimit: 10, font: { size: 10 } },
+            grid: { color: "rgba(205,214,244,0.04)" },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#6c7086", font: { size: 10 } },
+            grid: { color: "rgba(205,214,244,0.04)" },
+          },
         },
         plugins: {
-          legend: { labels: { color: "#cdd6f4", font: { size: 11 } } },
+          legend: {
+            labels: { color: "#cdd6f4", font: { size: 11 }, usePointStyle: true, pointStyleWidth: 10, padding: 16 },
+          },
         },
       },
     });
@@ -190,9 +222,16 @@ function esc(s) {
   return el.innerHTML;
 }
 
-function renderCard(d) {
+function renderCard(d, animate) {
   const card = document.createElement("div");
-  card.className = "dcard " + d.severity + (d.prediction === "BENIGN" ? " benign" : "");
+  const isAttack = d.prediction !== "BENIGN";
+  let cls = "dcard " + d.severity + (isAttack ? "" : " benign");
+
+  if (animate) {
+    cls += isAttack ? " attack-flash" : " new-card";
+  }
+
+  card.className = cls;
   card.dataset.id = d.id;
 
   const confPct = Math.round(d.confidence * 100);
@@ -214,6 +253,13 @@ function renderCard(d) {
   `;
 
   card.addEventListener("click", () => toggleExpand(card, d));
+
+  if (animate) {
+    card.addEventListener("animationend", () => {
+      card.classList.remove("attack-flash", "new-card");
+    }, { once: true });
+  }
+
   return card;
 }
 
@@ -265,18 +311,14 @@ function toggleExpand(card, d) {
     probHtml += `</div></div>`;
   }
 
-  const agreeHtml = d.model_agreement
-    ? `<div class="agree">&#10003; Random Forest and XGBoost agree</div>`
-    : `<div class="agree dis">&#9888; Models disagree</div>`;
-
-  detail.innerHTML = shapHtml + probHtml + agreeHtml;
+  detail.innerHTML = shapHtml + probHtml;
   const body = card.querySelector(".body");
   body.parentNode.insertBefore(detail, body.nextSibling);
 }
 
 const MAX_FEED = 200;
 
-function addCardToFeed(d) {
+function addCardToFeed(d, animate) {
   const list = document.getElementById("feed-list");
   const empty = document.getElementById("feed-empty");
   if (empty) empty.remove();
@@ -285,12 +327,12 @@ function addCardToFeed(d) {
     severityCounts[d.severity] = (severityCounts[d.severity] || 0) + 1;
     updateSeverityBars();
   }
-  if (d.src_ip && d.src_ip !== "\u2014") {
+  if (d.src_ip && d.src_ip !== "—") {
     talkerCounts[d.src_ip] = (talkerCounts[d.src_ip] || 0) + 1;
     updateTopTalkers();
   }
 
-  const card = renderCard(d);
+  const card = renderCard(d, animate !== false);
 
   if (feedScrolledAway) {
     list.prepend(card);
@@ -375,7 +417,7 @@ function connectSSE() {
     try {
       const d = JSON.parse(e.data);
       if (d.error) return;
-      addCardToFeed(d);
+      addCardToFeed(d, true);
       maybeNotify(d);
     } catch {
       // ignore parse errors
@@ -447,7 +489,7 @@ function maybeNotify(d) {
   }
 
   lastNotifyTime = now;
-  let body = `${d.src_ip} \u2192 ${d.dst_ip}  \u2022  ${Math.round(d.confidence * 100)}%`;
+  let body = `${d.src_ip} → ${d.dst_ip}  •  ${Math.round(d.confidence * 100)}%`;
   if (coalescedCount > 0) {
     body += `\n+${coalescedCount} more detections`;
     coalescedCount = 0;
@@ -470,7 +512,7 @@ async function seedFeed() {
   try {
     const res = await fetch("/api/recent_detections?limit=50");
     const records = await res.json();
-    records.reverse().forEach((d) => addCardToFeed(d));
+    records.reverse().forEach((d) => addCardToFeed(d, false));
   } catch {
     // API not up yet - SSE will populate
   }
