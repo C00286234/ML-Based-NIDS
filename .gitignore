@@ -3,8 +3,11 @@
 # ==============================================================================
 
 # --- Large files (excluded to keep repo small) ---
-data/
+data/raw/
+data/processed/
 models/
+reports/benchmarks/
+reports/training.log
 
 # --- Python ---
 __pycache__/

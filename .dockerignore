@@ -1,88 +1,16 @@
-# ==============================================================================
-# Docker Build Ignore File
-# ==============================================================================
-# Files and directories to exclude from Docker build context
-
-# Python
-__pycache__/
+.git
+.github
+.venv
+**/__pycache__
 *.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-venv/
-ENV/
-env/
-*.egg-info/
-.eggs/
-*.egg
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# Git
-.git/
-.gitignore
-.gitattributes
-
-# Documentation
-*.md
-!README.md
-docs/
-
-# Test files
-test_*.py
-tests/
-pytest.ini
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Data files (large, not needed for API)
-data/
-*.csv
-*.npy
-*.npz
-
-# Notebooks
-notebooks/
-*.ipynb
-.ipynb_checkpoints/
-
-# Logs (will be mounted as volume)
-logs/
-*.log
-
-# Configuration (will use environment variables)
-config/
-
-# Source code for NIDS engine (mostly not needed for API container).
-# The API only imports src.constants, which is explicitly copied in the Dockerfile.
-# We keep src/ in the build context so that COPY can pick out just the files needed.
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
-
-# OS files
+.pytest_cache
+.ruff_cache
+docs
+tests
+scripts
+logs
+reports
+models
+data/raw
+data/processed
 .DS_Store
-Thumbs.db
-*.bak
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# Batch files (Windows specific)
-*.bat
-
-# Other project files
-find_interface.py
-auto_config_interface.py
-PROJECT_EXPLANATION.txt

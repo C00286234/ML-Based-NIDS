@@ -1,19 +1,12 @@
 """Tests for the ring buffer, /api/recent, and /api/stream SSE endpoints."""
 
-import asyncio
 import json
-import sys
-import os
+from datetime import datetime
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
-# Ensure project root is on sys.path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from api.app import app, _recent_detections, _publish_detection, DetectionRecord
-from datetime import datetime
+from nids.api.app import DetectionRecord, _publish_detection, _recent_detections, app
 
 
 def _make_record(prediction="DoS Hulk", confidence=0.99, severity="critical", idx=0):
@@ -63,7 +56,6 @@ class TestRingBuffer:
 
 
 class TestRecentEndpoint:
-    @pytest.mark.anyio
     async def test_empty(self):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -71,7 +63,6 @@ class TestRecentEndpoint:
         assert resp.status_code == 200
         assert resp.json() == []
 
-    @pytest.mark.anyio
     async def test_returns_newest_first(self):
         for i in range(10):
             _publish_detection(_make_record(idx=i))
@@ -83,7 +74,6 @@ class TestRecentEndpoint:
         assert data[0]["id"] == "test-9"
         assert data[2]["id"] == "test-7"
 
-    @pytest.mark.anyio
     async def test_severity_filter(self):
         _publish_detection(_make_record(prediction="BENIGN", severity="low", idx=0))
         _publish_detection(_make_record(prediction="DoS Hulk", severity="critical", idx=1))

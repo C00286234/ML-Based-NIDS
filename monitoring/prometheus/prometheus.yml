@@ -21,7 +21,7 @@ scrape_configs:
   - job_name: "nids-api"
     metrics_path: "/metrics"
     static_configs:
-      - targets: ["nids-api:8000"]
+      - targets: ["api:8000"]
         labels:
           service: "nids"
           environment: "development"

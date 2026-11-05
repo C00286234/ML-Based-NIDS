@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIDS Dashboard - Network Intrusion Detection System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="header-shield">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>NIDS Dashboard</h1>
+                    <p class="subtitle">Network Intrusion Detection System &mdash; Real-Time Monitoring</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="notify-btn hidden" id="notify-btn" title="Enable browser notifications">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 01-3.46 0"/>
+                    </svg>
+                    Enable Alerts
+                </button>
+                <div class="connection-status" id="connection-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon predictions">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>Total Predictions</h3>
+                    <p class="stat-value" id="total-predictions">0</p>
+                    <p class="stat-subtitle">All time</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon attacks">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>Attacks Detected</h3>
+                    <p class="stat-value attack-count" id="total-attacks">0</p>
+                    <p class="stat-subtitle" id="attack-rate">0% attack rate</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon latency">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12,6 12,12 16,14"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>Avg Latency</h3>
+                    <p class="stat-value" id="avg-latency">0ms</p>
+                    <p class="stat-subtitle">Per prediction</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon uptime">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>Uptime</h3>
+                    <p class="stat-value" id="uptime">0s</p>
+                    <p class="stat-subtitle">API runtime</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="timeline-panel">
+            <h3 class="panel-title">Traffic Timeline <span class="panel-subtitle">last 10 minutes</span></h3>
+            <div class="timeline-chart-container">
+                <canvas id="timeline-chart"></canvas>
+            </div>
+        </section>
+
+        <section class="main-grid">
+            <div class="panel" id="feed-panel">
+                <div class="feed-header">
+                    <h3 class="panel-title">Live Detection Feed</h3>
+                    <button class="new-detections-pill hidden" id="new-pill">
+                        <span id="new-pill-count">0</span> new detections &#8593;
+                    </button>
+                </div>
+                <div class="sse-banner hidden" id="sse-banner">Disconnected, retrying&hellip;</div>
+                <div class="feed-list" id="feed-list">
+                    <p class="no-data" id="feed-empty">Waiting for detections&hellip;</p>
+                </div>
+            </div>
+
+            <div class="sidebar-stack">
+                <div class="panel">
+                    <h3 class="panel-title">Attack Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="attack-chart"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3 class="panel-title">Severity Breakdown</h3>
+                    <div class="severity-bars" id="severity-bars">
+                        <p class="no-data">No data yet</p>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3 class="panel-title">Top Talkers</h3>
+                    <div class="top-talkers" id="top-talkers">
+                        <p class="no-data">No data yet</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="status-bar" id="status-bar">
+            <div class="status-bar-item">
+                <span class="status-bar-dot" id="sb-api"></span>
+                API <span id="sb-api-label">...</span>
+            </div>
+            <div class="status-bar-item">
+                <span class="status-bar-dot" id="sb-models"></span>
+                Models <span id="sb-models-label">...</span>
+            </div>
+            <div class="status-bar-item">
+                <span class="status-bar-dot" id="sb-sse"></span>
+                SSE <span id="sb-sse-label">...</span>
+            </div>
+            <div class="status-bar-item">
+                Uptime <span id="sb-uptime">&mdash;</span>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>NIDS Dashboard v2.0.0 | ML-Based-NIDS</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
