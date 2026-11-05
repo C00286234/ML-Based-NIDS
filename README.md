@@ -1,6 +1,6 @@
 # ML-Based Network Intrusion Detection System
 
-[![CI](https://github.com/C00286234/ML-Based-NIDS/actions/workflows/ci.yml/badge.svg?branch=v2-portfolio)](https://github.com/C00286234/ML-Based-NIDS/actions/workflows/ci.yml)
+[![CI](https://github.com/C00286234/ML-Based-NIDS/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/C00286234/ML-Based-NIDS/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%E2%80%933.13-blue)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green)
 
@@ -78,7 +78,7 @@ flowchart LR
 ### Docker (API, dashboard, Prometheus, Grafana)
 
 ```bash
-git clone -b v2-portfolio https://github.com/C00286234/ML-Based-NIDS.git && cd ML-Based-NIDS
+git clone https://github.com/C00286234/ML-Based-NIDS.git && cd ML-Based-NIDS
 pip install uv && uv run nids model download    # pre-trained model from GitHub Releases (17 MB)
 docker compose up -d
 docker compose --profile demo up demo          # replay held-out attack traffic
