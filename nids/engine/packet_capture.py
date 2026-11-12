@@ -1,371 +1,137 @@
-"""
-Packet Capture Module for NIDS
-==============================
-Captures network packets using Scapy and stores them in a thread-safe queue.
+"""Live packet capture with Scapy.
 
-This module provides low-level packet capture functionality that feeds into
-the flow aggregation pipeline.
+Scapy only does the sniffing. Each captured frame is decoded by the same
+function that reads capture files (nids.engine.pcap.parse_frame), so live
+traffic and files go through identical code.
 """
+
+from __future__ import annotations
 
 import logging
 import queue
 import threading
 import time
-from dataclasses import dataclass, field
 from typing import Any
 
-try:
-    from scapy.all import ICMP, IP, TCP, UDP, conf, sniff
-    SCAPY_AVAILABLE = True
-except ImportError:
-    SCAPY_AVAILABLE = False
-    print("WARNING: Scapy not installed. Run: pip install scapy")
+from nids.engine.flowmeter import Packet
+from nids.engine.pcap import LINK_ETHERNET, LINK_LINUX_SLL, LINK_NULL, parse_frame, parse_ipv4
 
-# Configure logging
 logger = logging.getLogger("nids.capture")
 
+# Scapy's name for the outermost layer -> pcap link type
+_LINK_TYPES = {"Ether": LINK_ETHERNET, "Loopback": LINK_NULL, "CookedLinux": LINK_LINUX_SLL}
 
-@dataclass
-class CapturedPacket:
-    """
-    Represents a captured network packet with extracted metadata.
 
-    Attributes:
-        timestamp: When the packet was captured
-        src_ip: Source IP address
-        dst_ip: Destination IP address
-        src_port: Source port (0 for ICMP)
-        dst_port: Destination port (0 for ICMP)
-        protocol: Protocol number (6=TCP, 17=UDP, 1=ICMP)
-        length: Total packet length in bytes
-        payload_length: Length of payload (excluding headers)
-        tcp_flags: Dictionary of TCP flags (if TCP packet)
-        header_length: Length of IP + transport headers
-        window_size: TCP window size (if TCP)
-        icmp_type: ICMP type (if ICMP packet)
-        icmp_code: ICMP code (if ICMP packet)
-    """
-    timestamp: float
-    src_ip: str
-    dst_ip: str
-    src_port: int
-    dst_port: int
-    protocol: int
-    length: int
-    payload_length: int = 0
-    tcp_flags: dict[str, int] = field(default_factory=dict)
-    header_length: int = 0
-    window_size: int = 0
-    icmp_type: int = 0
-    icmp_code: int = 0
+def to_packet(scapy_packet) -> Packet | None:
+    """Convert a sniffed Scapy packet into a flowmeter Packet (None if it is not IPv4 TCP/UDP/ICMP)."""
+    ts = int(scapy_packet.time * 1_000_000)
+    raw = getattr(scapy_packet, "original", None)
+    link = _LINK_TYPES.get(type(scapy_packet).__name__)
+    if raw and link is not None:
+        return parse_frame(bytes(raw), ts, link)
+    ip = scapy_packet.getlayer("IP")
+    return parse_ipv4(bytes(ip), ts) if ip is not None else None
 
 
 class PacketCapture:
-    """
-    Network packet capture using Scapy.
-
-    Captures packets from a specified network interface and stores them
-    in a thread-safe queue for processing by the flow aggregator.
-
-    Example:
-        capture = PacketCapture(interface="Ethernet", promiscuous=True)
-        capture.start()
-        time.sleep(10)
-        packets = capture.get_packets(max_count=100)
-        capture.stop()
-    """
+    """Sniffs an interface on a background thread and queues decoded packets."""
 
     def __init__(
         self,
         interface: str | None = None,
         promiscuous: bool = True,
-        max_queue_size: int = 50000,
-        bpf_filter: str = "ip"
+        max_queue_size: int = 50_000,
+        bpf_filter: str = "ip",
     ):
-        """
-        Initialize the packet capture.
-
-        Args:
-            interface: Network interface name (None for default)
-            promiscuous: Enable promiscuous mode to capture all traffic
-            max_queue_size: Maximum packets to buffer (oldest dropped when full)
-            bpf_filter: Berkeley Packet Filter expression (default: only IP packets)
-        """
-        if not SCAPY_AVAILABLE:
-            raise RuntimeError("Scapy is not installed. Run: pip install scapy")
-
         self.interface = interface
         self.promiscuous = promiscuous
         self.bpf_filter = bpf_filter
-        self.max_queue_size = max_queue_size
+        self._queue: queue.Queue[Packet] = queue.Queue(maxsize=max_queue_size)
+        self._thread: threading.Thread | None = None
+        self._stop = threading.Event()
+        self._started: float | None = None
+        self.captured = 0
+        self.dropped = 0
+        self.error: Exception | None = None
 
-        # Thread-safe packet queue
-        self._packet_queue: queue.Queue = queue.Queue(maxsize=max_queue_size)
-
-        # Capture thread control
-        self._capture_thread: threading.Thread | None = None
-        self._stop_event = threading.Event()
-        self._is_running = False
-
-        # Statistics
-        self._packets_captured = 0
-        self._packets_dropped = 0
-        self._start_time: float | None = None
-
-        logger.info(f"PacketCapture initialized: interface={interface}, promiscuous={promiscuous}")
-
-    def _packet_callback(self, packet) -> None:
-        """
-        Callback function called by Scapy for each captured packet.
-
-        Extracts relevant information and adds to the queue.
-        """
+    def _on_packet(self, scapy_packet) -> None:
         try:
-            # Only process IP packets
-            if not packet.haslayer(IP):
-                return
-
-            ip_layer = packet[IP]
-
-            # Extract basic info
-            captured = CapturedPacket(
-                timestamp=float(packet.time),
-                src_ip=ip_layer.src,
-                dst_ip=ip_layer.dst,
-                src_port=0,
-                dst_port=0,
-                protocol=ip_layer.proto,
-                length=len(packet),
-                payload_length=0,
-                header_length=ip_layer.ihl * 4  # IP header length
-            )
-
-            # Extract TCP information
-            if packet.haslayer(TCP):
-                tcp_layer = packet[TCP]
-                captured.src_port = tcp_layer.sport
-                captured.dst_port = tcp_layer.dport
-                captured.header_length += tcp_layer.dataofs * 4  # TCP header length
-                captured.window_size = tcp_layer.window
-
-                # Extract TCP flags
-                flags = tcp_layer.flags
-                captured.tcp_flags = {
-                    'FIN': 1 if flags.F else 0,
-                    'SYN': 1 if flags.S else 0,
-                    'RST': 1 if flags.R else 0,
-                    'PSH': 1 if flags.P else 0,
-                    'ACK': 1 if flags.A else 0,
-                    'URG': 1 if flags.U else 0,
-                    'ECE': 1 if flags.E else 0,
-                    'CWR': 1 if flags.C else 0
-                }
-
-                # Calculate payload length
-                if tcp_layer.payload:
-                    captured.payload_length = len(tcp_layer.payload)
-
-            # Extract UDP information
-            elif packet.haslayer(UDP):
-                udp_layer = packet[UDP]
-                captured.src_port = udp_layer.sport
-                captured.dst_port = udp_layer.dport
-                captured.header_length += 8  # UDP header is always 8 bytes
-
-                if udp_layer.payload:
-                    captured.payload_length = len(udp_layer.payload)
-
-            # Extract ICMP information
-            elif packet.haslayer(ICMP):
-                icmp_layer = packet[ICMP]
-                captured.icmp_type = icmp_layer.type
-                captured.icmp_code = icmp_layer.code
-                captured.header_length += 8  # ICMP header
-
-            # Try to add to queue
-            try:
-                self._packet_queue.put_nowait(captured)
-                self._packets_captured += 1
-            except queue.Full:
-                # Queue full - drop oldest packet and add new one
-                try:
-                    self._packet_queue.get_nowait()
-                    self._packet_queue.put_nowait(captured)
-                    self._packets_dropped += 1
-                except queue.Empty:
-                    pass
-
-        except Exception as e:
-            logger.debug(f"Error processing packet: {e}")
-
-    def _capture_loop(self) -> None:
-        """
-        Main capture loop running in background thread.
-        """
-        logger.info(f"Starting packet capture on interface: {self.interface or 'default'}")
-
+            packet = to_packet(scapy_packet)
+        except Exception as e:  # a malformed frame must never stop the capture
+            logger.debug("Could not decode packet: %s", e)
+            return
+        if packet is None:
+            return
         try:
-            # Configure Scapy
-            if self.promiscuous:
-                conf.promisc = True
+            self._queue.put_nowait(packet)
+            self.captured += 1
+        except queue.Full:
+            self.dropped += 1
 
-            # Start sniffing - this blocks until stop_filter returns True
+    def _run(self) -> None:
+        from scapy.all import conf, sniff
+
+        conf.promisc = self.promiscuous
+        try:
             sniff(
                 iface=self.interface,
-                prn=self._packet_callback,
-                store=False,  # Don't store packets in memory
+                prn=self._on_packet,
+                store=False,
                 filter=self.bpf_filter,
-                stop_filter=lambda x: self._stop_event.is_set()
+                stop_filter=lambda _: self._stop.is_set(),
             )
-        except PermissionError:
-            logger.error("Permission denied. Run as Administrator/root for packet capture.")
+        except PermissionError as e:
+            self.error = e
+            logger.error("Permission denied: packet capture needs root (sudo).")
         except Exception as e:
-            logger.error(f"Capture error: {e}")
-        finally:
-            logger.info("Packet capture stopped")
+            self.error = e
+            logger.error("Capture error: %s", e)
 
     def start(self) -> None:
-        """
-        Start packet capture in background thread.
-
-        Raises:
-            RuntimeError: If capture is already running
-        """
-        if self._is_running:
+        if self._thread is not None:
             raise RuntimeError("Packet capture is already running")
-
-        self._stop_event.clear()
-        self._start_time = time.time()
-        self._packets_captured = 0
-        self._packets_dropped = 0
-
-        self._capture_thread = threading.Thread(
-            target=self._capture_loop,
-            name="PacketCaptureThread",
-            daemon=True
-        )
-        self._capture_thread.start()
-        self._is_running = True
-
-        logger.info("Packet capture started")
+        try:
+            import scapy.all  # noqa: F401
+        except ImportError as e:
+            raise RuntimeError("Live capture needs Scapy: install the 'capture' extra (uv sync --extra capture)") from e
+        self._stop.clear()
+        self._started = time.time()
+        self._thread = threading.Thread(target=self._run, name="packet-capture", daemon=True)
+        self._thread.start()
 
     def stop(self) -> None:
-        """
-        Stop packet capture gracefully.
-        """
-        if not self._is_running:
-            return
-
-        logger.info("Stopping packet capture...")
-        self._stop_event.set()
-
-        # Wait for thread to finish (with timeout)
-        if self._capture_thread and self._capture_thread.is_alive():
-            self._capture_thread.join(timeout=5.0)
-
-        self._is_running = False
-        logger.info(f"Capture stopped. Total packets: {self._packets_captured}, Dropped: {self._packets_dropped}")
-
-    def get_packets(self, max_count: int = 100) -> list[CapturedPacket]:
-        """
-        Retrieve captured packets from the queue.
-
-        Args:
-            max_count: Maximum number of packets to retrieve
-
-        Returns:
-            List of CapturedPacket objects
-        """
-        packets = []
-
-        for _ in range(max_count):
-            try:
-                packet = self._packet_queue.get_nowait()
-                packets.append(packet)
-            except queue.Empty:
-                break
-
-        return packets
-
-    def get_queue_size(self) -> int:
-        """Get current number of packets waiting in queue."""
-        return self._packet_queue.qsize()
-
-    def get_statistics(self) -> dict[str, Any]:
-        """
-        Get capture statistics.
-
-        Returns:
-            Dictionary with capture statistics
-        """
-        elapsed = time.time() - self._start_time if self._start_time else 0
-
-        return {
-            "is_running": self._is_running,
-            "interface": self.interface,
-            "packets_captured": self._packets_captured,
-            "packets_dropped": self._packets_dropped,
-            "queue_size": self._packet_queue.qsize(),
-            "elapsed_seconds": elapsed,
-            "packets_per_second": self._packets_captured / elapsed if elapsed > 0 else 0
-        }
+        self._stop.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=5.0)
+        self._thread = None
 
     @property
     def is_running(self) -> bool:
-        """Check if capture is currently running."""
-        return self._is_running
+        return self._thread is not None and self._thread.is_alive()
+
+    def get_packets(self, max_count: int = 500) -> list[Packet]:
+        packets = []
+        try:
+            for _ in range(max_count):
+                packets.append(self._queue.get_nowait())
+        except queue.Empty:
+            pass
+        return packets
+
+    def get_statistics(self) -> dict[str, Any]:
+        elapsed = time.time() - self._started if self._started else 0.0
+        return {
+            "interface": self.interface,
+            "packets_captured": self.captured,
+            "packets_dropped": self.dropped,
+            "queue_size": self._queue.qsize(),
+            "packets_per_second": self.captured / elapsed if elapsed > 0 else 0.0,
+        }
 
 
 def list_interfaces() -> list[str]:
-    """
-    List available network interfaces.
-
-    Returns:
-        List of interface names
-    """
-    if not SCAPY_AVAILABLE:
-        return []
-
     try:
-        from scapy.arch.windows import get_windows_if_list
-        interfaces = get_windows_if_list()
-        return [iface['name'] for iface in interfaces]
-    except ImportError:
-        # Non-Windows system
         from scapy.all import get_if_list
-        return get_if_list()
-    except Exception as e:
-        logger.error(f"Error listing interfaces: {e}")
+    except ImportError:
         return []
-
-
-if __name__ == "__main__":
-    # Test packet capture
-    logging.basicConfig(level=logging.INFO)
-
-    print("Available network interfaces:")
-    for i, iface in enumerate(list_interfaces()):
-        print(f"  {i}: {iface}")
-
-    print("\nStarting packet capture (Ctrl+C to stop)...")
-
-    capture = PacketCapture(interface=None, promiscuous=True)
-    capture.start()
-
-    try:
-        while True:
-            time.sleep(2)
-            packets = capture.get_packets(max_count=50)
-            stats = capture.get_statistics()
-
-            print(f"\nCaptured: {stats['packets_captured']}, Queue: {stats['queue_size']}, "
-                  f"Rate: {stats['packets_per_second']:.1f} pps")
-
-            for pkt in packets[:5]:  # Show first 5 packets
-                print(f"  {pkt.src_ip}:{pkt.src_port} -> {pkt.dst_ip}:{pkt.dst_port} "
-                      f"proto={pkt.protocol} len={pkt.length}")
-
-    except KeyboardInterrupt:
-        print("\nStopping...")
-    finally:
-        capture.stop()
+    return list(get_if_list())

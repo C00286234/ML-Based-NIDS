@@ -5,6 +5,7 @@
 # --- Large files (excluded to keep repo small) ---
 data/raw/
 data/processed/
+data/pcap/
 models/
 reports/benchmarks/
 reports/training.log

@@ -46,7 +46,7 @@ def _fake_flow_id(label: str, rng: random.Random) -> str:
     """A plausible 5-tuple so the dashboard can show source and destination."""
     src = f"192.168.10.{rng.randint(2, 254)}" if label == BENIGN else f"172.16.0.{rng.randint(1, 20)}"
     dst = f"192.168.10.{rng.choice([3, 5, 8, 9, 14, 15, 50, 51])}"
-    return f"{src}-{dst}-6-{rng.randint(1024, 65535)}-{rng.choice([21, 22, 80, 443, 8080])}"
+    return f"{src}-{dst}-{rng.randint(1024, 65535)}-{rng.choice([21, 22, 80, 443, 8080])}-6"
 
 
 def run(

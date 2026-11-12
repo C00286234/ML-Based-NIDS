@@ -37,8 +37,8 @@ need host context, such as the source being an internal address that recently do
 
 ```mermaid
 flowchart LR
-    NIC[Network interface] -->|Scapy + BPF| CAP[Packet capture]
-    CAP --> AGG[5-tuple bidirectional<br/>flow aggregation]
+    NIC[Network interface<br/>or capture file] --> CAP[Packet decoding]
+    CAP --> AGG[Flow building<br/>as CICFlowMeter does]
     AGG --> FE[84 CICFlowMeter<br/>features]
     FE -->|HTTP| API
     AGG --> HEU[Heuristics<br/>SYN flood, port scan]
@@ -67,9 +67,14 @@ flowchart LR
   reported numbers come from exactly the model being served.
 - **Explainability:** every `/predict` response includes the five features that pushed the decision
   most, with their raw (unscaled) values.
-- **Live capture:** the engine builds flows from packets and computes the same 84 features
-  CICFlowMeter does. Two simple heuristics (SYN flood, port scan) catch patterns that span many
-  flows, which a per-flow model can't see.
+- **Live capture that matches the training data:** the engine's flow builder is a step-by-step port
+  of the CICFlowMeter build that produced the dataset, quirks included. Run on the dataset's own
+  packet captures it rebuilds **52,327 of 52,327 flows** with identical endpoints and start times,
+  99.98% of them with all 84 features equal, and the model gives the same answer on every one
+  ([parity report](reports/PARITY.md)). Two simple rules (SYN flood, port scan) catch patterns
+  that span many flows, which a per-flow model can't see.
+- **Capture files:** `nids pcap capture.pcap` analyses a pcap or pcapng file with no other services
+  running, at around 100,000 packets per second.
 - **Operations:** API key auth, rate limiting, Prometheus metrics, a pre-built Grafana dashboard,
   Email/Slack alerting with cooldowns, and Docker Compose for the whole stack.
 
@@ -101,11 +106,23 @@ uv run nids demo                    # replay held-out flows against the API
 
 `uv run nids train --quick` trains a smaller model in about a minute.
 
-### Live capture
+### Capture files and live capture
 
 ```bash
+uv run nids pcap capture.pcap                    # analyse a pcap/pcapng file; prints a summary
+uv run nids pcap capture.pcap --out flows.csv    # ...and writes one row per flow
+
+uv run nids engine --pcap capture.pcap           # same file through the API, so it shows on the dashboard
 uv sync --extra capture
-sudo uv run nids engine -i en0      # or --replay data/processed/test.parquet
+sudo uv run nids engine -i en0                   # live capture from an interface
+```
+
+To try it on real attack traffic, `scripts/pcap_slice.py` downloads a few minutes of the
+CIC-IDS2017 captures (which are 8–13 GB per day) without fetching the whole file:
+
+```bash
+uv run python scripts/pcap_slice.py friday 2017-07-07T18:56:00 --minutes 3   # the DDoS attack, 154 MB
+uv run nids pcap data/pcap/friday_1856_3min.pcap
 ```
 
 ## Methodology: what changed from the original project
@@ -122,6 +139,7 @@ I found several problems with how it was evaluated. This version fixes them:
 | The README described an RF + XGBoost ensemble, but only the single best model was ever evaluated | The deployed ensemble is evaluated, alongside each model on its own |
 | `Src Port` was a feature. It's an OS-chosen ephemeral port, so the model can learn the lab machines rather than the attacks | Excluded, along with the six bulk features the live engine can't compute (always 0 live) |
 | Severity table used label names that don't exist (`PortScan`, `Bot`), so those alerts quietly defaulted to "medium" | Fixed, and a test checks that every class has a severity |
+| The live engine measured flows differently from the dataset: packet sizes included headers, idle time used a 1 s threshold instead of 5 s, flows were cut after 10 s or 1,000 packets. On real packets only 4 of the model's 50 features matched the dataset's values, and the engine caught half of an FTP brute-force while raising false alarms on normal traffic | Rewritten as a port of the dataset's CICFlowMeter and checked against the dataset's own captures: every flow rebuilt, 99.98% with all 84 features equal, identical predictions ([report](reports/PARITY.md)). A sample of real packets runs in CI |
 | Hard-coded Windows paths, five `requirements.txt` files, scripts run by number | An installable package with one `nids` CLI, `uv.lock`, tests and CI |
 
 Other decisions:
@@ -138,9 +156,11 @@ Other decisions:
 - **One dataset.** CIC-IDS2017 is a five-day lab capture. Scores this high are typical of in-dataset
   evaluation and drop sharply on other networks. The next step would be cross-dataset testing on
   CSE-CIC-IDS2018 (the same authors published an improved version).
-- **Live features are a re-implementation.** The engine computes CICFlowMeter's features itself. It
-  matches the definitions, but small differences in flow timeouts and edge cases mean live traffic
-  isn't guaranteed to look exactly like the training data.
+- **Live detection trades a little accuracy for speed.** The dataset ends a flow 120 s after it
+  starts. The live engine can't wait that long, so it also scores a flow after 15 s of silence or
+  1 s after the connection closes. On the dataset's captures that keeps 99.6% of the detections
+  ([details](reports/PARITY.md#what-faster-detection-costs)). One-packet flows are never scored,
+  because the dataset contains none. IPv6 is not supported, because the dataset has none either.
 - **Supervised only.** The model recognises the attack types it was trained on. A new kind of attack
   that looks like benign traffic will be missed. An anomaly detector trained on benign traffic would
   be a natural addition.
@@ -151,15 +171,16 @@ Other decisions:
 nids/
   ml/          dataset.py (download, clean, split) · train.py · evaluate.py · model.py (NIDSModel)
   api/         FastAPI app, API-key auth, rate limiting
-  engine/      packet capture, flow aggregation, feature extraction, alerting
+  engine/      flowmeter.py (packets -> flows -> 84 features) · pcap.py (file reader) · engine.py
+               (live capture / pcap -> API) · analyze.py (`nids pcap`) · heuristics.py · alerting.py
   dashboard/   Flask dashboard (SSE live feed)
   cli.py       the `nids` command
   demo.py      replays held-out flows against the API
-tests/         unit and API tests (synthetic data, no dataset needed)
-reports/       evaluation report, metrics.json, confusion matrix
+tests/         unit and API tests, plus a real-packet sample checked against the dataset's values
+reports/       evaluation report, live-parity report, metrics.json, confusion matrix
 monitoring/    Prometheus config and Grafana dashboard
 docker/        container image
-scripts/       load testing, pcap tools
+scripts/       load testing, parity report, capture-slice downloader
 docs/fyp/      the original final-year report and results
 ```
 

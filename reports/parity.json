@@ -1,0 +1,295 @@
+{
+  "slices": [
+    {
+      "slice": "friday_1304_4min.pcap",
+      "dataset_flows": 3942,
+      "matched": 3942,
+      "labels": {
+        "BENIGN": 3919,
+        "Botnet": 23
+      }
+    },
+    {
+      "slice": "friday_1655_3min.pcap",
+      "dataset_flows": 2033,
+      "matched": 2033,
+      "labels": {
+        "BENIGN": 1929,
+        "Portscan": 104
+      }
+    },
+    {
+      "slice": "friday_1856_3min.pcap",
+      "dataset_flows": 13365,
+      "matched": 13365,
+      "labels": {
+        "BENIGN": 2850,
+        "DDoS": 10515
+      }
+    },
+    {
+      "slice": "thursday_1219_4min.pcap",
+      "dataset_flows": 2122,
+      "matched": 2122,
+      "labels": {
+        "BENIGN": 2119,
+        "Web Attack": 3
+      }
+    },
+    {
+      "slice": "thursday_1700_4min.pcap",
+      "dataset_flows": 3597,
+      "matched": 3597,
+      "labels": {
+        "BENIGN": 2642,
+        "Infiltration - Portscan": 955
+      }
+    },
+    {
+      "slice": "tuesday_1216_4min.pcap",
+      "dataset_flows": 4248,
+      "matched": 4248,
+      "labels": {
+        "BENIGN": 4186,
+        "FTP-Patator": 62
+      }
+    },
+    {
+      "slice": "wednesday_1248_4min.pcap",
+      "dataset_flows": 3305,
+      "matched": 3305,
+      "labels": {
+        "BENIGN": 2901,
+        "DoS Slowloris": 404
+      }
+    },
+    {
+      "slice": "wednesday_1342_3min.pcap",
+      "dataset_flows": 16360,
+      "matched": 16360,
+      "labels": {
+        "BENIGN": 982,
+        "DoS Hulk": 15378
+      }
+    },
+    {
+      "slice": "wednesday_1409_3min.pcap",
+      "dataset_flows": 3355,
+      "matched": 3355,
+      "labels": {
+        "BENIGN": 1556,
+        "DoS GoldenEye": 1799
+      }
+    }
+  ],
+  "dataset_flows": 52327,
+  "matched_flows": 52327,
+  "feature_agreement": {
+    "Src Port": 1.0,
+    "Dst Port": 1.0,
+    "Protocol": 1.0,
+    "Flow Duration": 1.0,
+    "Total Fwd Packet": 1.0,
+    "Total Bwd packets": 1.0,
+    "Total Length of Fwd Packet": 0.9998853364419898,
+    "Total Length of Bwd Packet": 1.0,
+    "Fwd Packet Length Max": 0.9998853364419898,
+    "Fwd Packet Length Min": 0.9998853364419898,
+    "Fwd Packet Length Mean": 0.9998853364419898,
+    "Fwd Packet Length Std": 1.0,
+    "Bwd Packet Length Max": 1.0,
+    "Bwd Packet Length Min": 1.0,
+    "Bwd Packet Length Mean": 1.0,
+    "Bwd Packet Length Std": 1.0,
+    "Flow Bytes/s": 0.9998853364419898,
+    "Flow Packets/s": 1.0,
+    "Flow IAT Mean": 1.0,
+    "Flow IAT Std": 1.0,
+    "Flow IAT Max": 1.0,
+    "Flow IAT Min": 1.0,
+    "Fwd IAT Total": 1.0,
+    "Fwd IAT Mean": 1.0,
+    "Fwd IAT Std": 1.0,
+    "Fwd IAT Max": 1.0,
+    "Fwd IAT Min": 1.0,
+    "Bwd IAT Total": 1.0,
+    "Bwd IAT Mean": 1.0,
+    "Bwd IAT Std": 1.0,
+    "Bwd IAT Max": 1.0,
+    "Bwd IAT Min": 1.0,
+    "Fwd PSH Flags": 1.0,
+    "Bwd PSH Flags": 1.0,
+    "Fwd URG Flags": 1.0,
+    "Bwd URG Flags": 1.0,
+    "Fwd RST Flags": 1.0,
+    "Bwd RST Flags": 1.0,
+    "Fwd Header Length": 0.9999426682209949,
+    "Bwd Header Length": 0.9998853364419898,
+    "Fwd Packets/s": 1.0,
+    "Bwd Packets/s": 1.0,
+    "Packet Length Min": 1.0,
+    "Packet Length Max": 0.9998853364419898,
+    "Packet Length Mean": 0.9998853364419898,
+    "Packet Length Std": 0.9998853364419898,
+    "Packet Length Variance": 0.9998853364419898,
+    "FIN Flag Count": 1.0,
+    "SYN Flag Count": 1.0,
+    "RST Flag Count": 1.0,
+    "PSH Flag Count": 1.0,
+    "ACK Flag Count": 1.0,
+    "URG Flag Count": 1.0,
+    "CWR Flag Count": 1.0,
+    "ECE Flag Count": 1.0,
+    "Down/Up Ratio": 1.0,
+    "Average Packet Size": 0.9998853364419898,
+    "Fwd Segment Size Avg": 0.9998853364419898,
+    "Bwd Segment Size Avg": 1.0,
+    "Fwd Bytes/Bulk Avg": 1.0,
+    "Fwd Packet/Bulk Avg": 1.0,
+    "Fwd Bulk Rate Avg": 1.0,
+    "Bwd Bytes/Bulk Avg": 1.0,
+    "Bwd Packet/Bulk Avg": 1.0,
+    "Bwd Bulk Rate Avg": 1.0,
+    "Subflow Fwd Packets": 1.0,
+    "Subflow Fwd Bytes": 0.9998853364419898,
+    "Subflow Bwd Packets": 1.0,
+    "Subflow Bwd Bytes": 1.0,
+    "FWD Init Win Bytes": 1.0,
+    "Bwd Init Win Bytes": 1.0,
+    "Fwd Act Data Pkts": 1.0,
+    "Fwd Seg Size Min": 1.0,
+    "Active Mean": 1.0,
+    "Active Std": 1.0,
+    "Active Max": 1.0,
+    "Active Min": 1.0,
+    "Idle Mean": 1.0,
+    "Idle Std": 1.0,
+    "Idle Max": 1.0,
+    "Idle Min": 1.0,
+    "ICMP Code": 1.0,
+    "ICMP Type": 1.0,
+    "Total TCP Flow Time": 1.0
+  },
+  "flows_with_all_84_features_equal": 0.9997706728839796,
+  "flows_with_all_training_features_equal": 0.9997706728839796,
+  "flows_with_all_model_features_equal": 0.9998853364419898,
+  "same_prediction": 1.0,
+  "on_dataset_features": {
+    "flows": 52327,
+    "attack_flows": 29243,
+    "accuracy": 0.9842910925526019,
+    "detection_rate": 0.9999658037821016,
+    "false_positive_rate": 0.0006498007277768151
+  },
+  "on_our_features": {
+    "flows": 52327,
+    "attack_flows": 29243,
+    "accuracy": 0.9842910925526019,
+    "detection_rate": 0.9999658037821016,
+    "false_positive_rate": 0.0006498007277768151
+  },
+  "by_class": {
+    "BENIGN": {
+      "flows": 23084,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 0.9993501992722232,
+      "correct_on_our_features": 0.9993501992722232
+    },
+    "Botnet": {
+      "flows": 23,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
+    },
+    "DDoS": {
+      "flows": 10515,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
+    },
+    "DoS GoldenEye": {
+      "flows": 1799,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 0.9994441356309061,
+      "correct_on_our_features": 0.9994441356309061
+    },
+    "DoS Hulk": {
+      "flows": 15378,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
+    },
+    "DoS Slowloris": {
+      "flows": 404,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
+    },
+    "FTP-Patator": {
+      "flows": 62,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
+    },
+    "Infiltration - Portscan": {
+      "flows": 955,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 0.15706806282722513,
+      "correct_on_our_features": 0.15706806282722513
+    },
+    "Portscan": {
+      "flows": 104,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 0.9903846153846154,
+      "correct_on_our_features": 0.9903846153846154
+    },
+    "Web Attack": {
+      "flows": 3,
+      "same_prediction": 1.0,
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
+    }
+  },
+  "tolerance": {
+    "rtol": 0.0001,
+    "atol": 0.01
+  },
+  "live": [
+    {
+      "idle_timeout": 60,
+      "close_grace": 5,
+      "flows": 52761,
+      "attack_flows": 29403,
+      "accuracy": 0.9827713652129414,
+      "detection_rate": 0.9970071081182192,
+      "false_positive_rate": 0.0006421782686873876
+    },
+    {
+      "idle_timeout": 30,
+      "close_grace": 2,
+      "flows": 53755,
+      "attack_flows": 29612,
+      "accuracy": 0.980485536229188,
+      "detection_rate": 0.9952384168580305,
+      "false_positive_rate": 0.0006627179720830054
+    },
+    {
+      "idle_timeout": 15,
+      "close_grace": 1,
+      "flows": 53926,
+      "attack_flows": 29650,
+      "accuracy": 0.9808070318584727,
+      "detection_rate": 0.9957504215851603,
+      "false_positive_rate": 0.0007002801120448179
+    },
+    {
+      "idle_timeout": 5,
+      "close_grace": 1,
+      "flows": 66653,
+      "attack_flows": 31222,
+      "accuracy": 0.940287758990593,
+      "detection_rate": 0.9430850041637308,
+      "false_positive_rate": 0.001213626485281251
+    }
+  ]
+}

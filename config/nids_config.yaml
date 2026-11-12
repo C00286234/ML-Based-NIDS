@@ -1,20 +1,23 @@
 network:
-  interface: WiFi
+  interface: null       # null = default interface; or a name from `nids engine --list-interfaces`
   promiscuous: true
   bpf_filter: ip
 flow:
-  timeout: 10.0
-  max_packets: 1000
-  max_flows: 100000
+  # How packets are grouped into flows. The first value matches the training
+  # data and should not be changed. See reports/PARITY.md for what the other
+  # two cost in accuracy.
+  timeout: 120.0        # a flow is cut 120 s after it started
+  idle_timeout: 15.0    # live only: score a flow after this many seconds of silence
+  close_grace: 1.0      # live only: score a closed TCP connection after this long
+  max_flows: 200000
 api:
   url: http://localhost:8000
-  predict_endpoint: /predict
   timeout: 10.0
   retry_count: 3
+  workers: 8            # parallel requests to the API
+  max_backlog: 5000     # flows waiting for the API before new ones are skipped
 alerts:
-  enabled: true
-  confidence_threshold: 0.8
-  log_only: true
+  confidence_threshold: 0.8   # attack predictions below this are logged but not alerted
 alerting:
   email:
     enabled: false
@@ -35,12 +38,8 @@ alerting:
     min_confidence: 0.8
     cooldown_minutes: 2
     severity_threshold: medium
-logging:
-  level: INFO
-  file: logs/nids/nids_engine.log
 performance:
   packet_batch_size: 500
-  cleanup_interval: 5
   stats_interval: 10
 heuristics:
   syn_flood_window: 10        # seconds to count SYN micro-flows

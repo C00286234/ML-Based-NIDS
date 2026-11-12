@@ -65,8 +65,17 @@ def _dashboard(args) -> None:
 def _engine(args) -> None:
     from nids.engine.engine import main
 
-    sys.argv = ["nids engine", *args.engine_args]
-    main()
+    main(args.engine_args)
+
+
+def _pcap(args) -> None:
+    from nids.engine.analyze import analyze
+
+    options = {"idle_timeout": 15.0, "close_grace": 1.0} if args.live_timeouts else {}
+    report = analyze(args.file, out=args.out, min_confidence=args.min_confidence, **options)
+    print(json.dumps(report.to_dict(), indent=2) if args.json else report.text())
+    if args.out:
+        print(f"\nPer-flow results: {args.out}")
 
 
 def _demo(args) -> None:
@@ -122,9 +131,20 @@ def build_parser() -> argparse.ArgumentParser:
     db.add_argument("--port", type=int, default=5001)
     db.set_defaults(func=_dashboard)
 
-    e = sub.add_parser("engine", help="live capture engine (needs root and the 'capture' extra)")
+    e = sub.add_parser("engine", add_help=False,
+                       help="capture engine: live interface (needs root and the 'capture' extra) or --pcap FILE")
     e.add_argument("engine_args", nargs=argparse.REMAINDER)
     e.set_defaults(func=_engine)
+
+    pc = sub.add_parser("pcap", help="analyse a capture file (.pcap / .pcapng) with the model, no API needed")
+    pc.add_argument("file")
+    pc.add_argument("--out", help="write one row per flow to this CSV")
+    pc.add_argument("--json", action="store_true", help="print the summary as JSON")
+    pc.add_argument("--min-confidence", type=float, default=0.0,
+                    help="treat attack predictions below this confidence as benign")
+    pc.add_argument("--live-timeouts", action="store_true",
+                    help="end flows early as the live engine does, instead of as the dataset does")
+    pc.set_defaults(func=_pcap)
 
     dm = sub.add_parser("demo", help="replay held-out flows against the API")
     dm.add_argument("--api", default=os.getenv("NIDS_API_URL", "http://localhost:8000"))
@@ -142,6 +162,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> None:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["engine"]:  # the engine has its own options; hand them over untouched
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
+        return _engine(argparse.Namespace(engine_args=argv[1:]))
     args = build_parser().parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
