@@ -36,24 +36,28 @@ Two values count as equal within a relative difference of 0.0001 (the dataset's 
 
 | Features from | Flows | Attack flows | Accuracy | Detection rate | False positive rate |
 |---|---|---|---|---|---|
-| The dataset (CICFlowMeter) | 52,327 | 29,243 | 98.43% | 100.00% | 0.065% |
-| This project's engine | 52,327 | 29,243 | 98.43% | 100.00% | 0.065% |
+| The dataset (CICFlowMeter) | 52,327 | 29,243 | 98.42% | 100.00% | 0.074% |
+| This project's engine | 52,327 | 29,243 | 98.42% | 100.00% | 0.074% |
 
 These slices overlap the training data, so the scores are not a test of the model. What matters
 is that the two rows agree.
 
 | Class | Flows | Same prediction | Correct (dataset features) | Correct (our features) |
 |---|---|---|---|---|
-| BENIGN | 23,084 | 100.00% | 99.94% | 99.94% |
+| BENIGN | 23,084 | 100.00% | 99.93% | 99.93% |
 | Botnet | 23 | 100.00% | 100.00% | 100.00% |
 | DDoS | 10,515 | 100.00% | 100.00% | 100.00% |
-| DoS GoldenEye | 1,799 | 100.00% | 99.94% | 99.94% |
+| DoS GoldenEye | 1,799 | 100.00% | 100.00% | 100.00% |
 | DoS Hulk | 15,378 | 100.00% | 100.00% | 100.00% |
 | DoS Slowloris | 404 | 100.00% | 100.00% | 100.00% |
 | FTP-Patator | 62 | 100.00% | 100.00% | 100.00% |
-| Infiltration - Portscan | 955 | 100.00% | 15.71% | 15.71% |
+| Infiltration - Portscan | 955 | 100.00% | 15.29% | 15.29% |
 | Portscan | 104 | 100.00% | 99.04% | 99.04% |
-| Web Attack | 3 | 100.00% | 100.00% | 100.00% |
+| Web Attack | 3 | 100.00% | 66.67% | 66.67% |
+
+The low score for "Infiltration - Portscan" is a labelling quirk, not a parity problem: these flows are a
+14-second scan from the outside attacker (172.16.0.1) that the dataset files under that label, and the
+model calls them plain "Portscan". It does so on the dataset's features and on ours alike.
 
 ## What faster detection costs
 
@@ -65,10 +69,10 @@ each one falls inside:
 
 | Idle timeout | Close grace | Flows scored | Accuracy | Detection rate | False positive rate |
 |---|---|---|---|---|---|
-| 60 s | 5 s | 52,761 | 98.28% | 99.70% | 0.064% |
-| 30 s | 2 s | 53,755 | 98.05% | 99.52% | 0.066% |
-| 15 s (default) | 1 s | 53,926 | 98.08% | 99.58% | 0.070% |
-| 5 s | 1 s | 66,653 | 94.03% | 94.31% | 0.121% |
+| 60 s | 5 s | 52,761 | 98.26% | 99.70% | 0.073% |
+| 30 s | 2 s | 53,755 | 98.13% | 99.53% | 0.083% |
+| 15 s (default) | 1 s | 53,926 | 98.22% | 99.58% | 0.078% |
+| 5 s | 1 s | 66,653 | 93.95% | 94.21% | 0.206% |
 
 For comparison, with flows cut exactly as in the dataset (the tables above) the detection rate
 on these slices is 100%. `nids pcap` uses those exact rules, since a file has no need to hurry.

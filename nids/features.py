@@ -37,16 +37,19 @@ FEATURE_NAMES_84 = [
 ]
 
 
-# Features left out of training on purpose:
-# - Src Port: an ephemeral, OS-chosen number. The model learns which ports the
-#   lab's attack machines happened to use, which does not generalise.
-# - Bulk features: the live engine cannot compute them (always 0), so training
-#   on them would make live traffic look different from training traffic.
-EXCLUDED_FROM_TRAINING = [
-    "Src Port",
+BULK_FEATURES = [
     "Fwd Bytes/Bulk Avg", "Fwd Packet/Bulk Avg", "Fwd Bulk Rate Avg",
     "Bwd Bytes/Bulk Avg", "Bwd Packet/Bulk Avg", "Bwd Bulk Rate Avg",
 ]
+
+# Features left out of training on purpose:
+# - Src Port: an ephemeral, OS-chosen number. The model learns which ports the
+#   lab's attack machines happened to use, which does not generalise.
+# - Dst Port: with it, the model learns "port 80 plus this shape is DoS Hulk"
+#   and misses the same attack on port 8080. Leaving it out costs nothing on
+#   validation and makes the model port-independent (reports/EXPERIMENTS.md).
+# - Bulk features: adding them does not help (same report), so the model stays smaller.
+EXCLUDED_FROM_TRAINING = ["Src Port", "Dst Port", *BULK_FEATURES]
 
 TRAINING_FEATURES = [f for f in FEATURE_NAMES_84 if f not in EXCLUDED_FROM_TRAINING]
 
@@ -69,4 +72,23 @@ ATTACK_SEVERITY = {
     "DDoS": "critical",
     "Heartbleed": "critical",
     "Infiltration": "critical",
+}
+
+# Broader groupings, for reporting. Classes in one family are often confused with
+# each other; the family is usually what an analyst needs to know first.
+ATTACK_FAMILY = {
+    "BENIGN": "Benign",
+    "Portscan": "Scanning",
+    "Infiltration - Portscan": "Scanning",
+    "FTP-Patator": "Brute force",
+    "SSH-Patator": "Brute force",
+    "DoS Slowloris": "Denial of service",
+    "DoS Slowhttptest": "Denial of service",
+    "DoS GoldenEye": "Denial of service",
+    "DoS Hulk": "Denial of service",
+    "DDoS": "Denial of service",
+    "Web Attack": "Web attack",
+    "Botnet": "Botnet",
+    "Heartbleed": "Exploit",
+    "Infiltration": "Infiltration",
 }

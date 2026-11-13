@@ -260,6 +260,10 @@ def markdown(r: dict) -> str:
     for cls, c in r["by_class"].items():
         lines.append(f"| {cls} | {c['flows']:,} | {_pct(c['same_prediction'])} | "
                      f"{_pct(c['correct_on_dataset_features'])} | {_pct(c['correct_on_our_features'])} |")
+    if "Infiltration - Portscan" in r["by_class"]:
+        lines += ["", "The low score for \"Infiltration - Portscan\" is a labelling quirk, not a parity problem: these flows are a",
+                  "14-second scan from the outside attacker (172.16.0.1) that the dataset files under that label, and the",
+                  "model calls them plain \"Portscan\". It does so on the dataset's features and on ours alike."]
     lines += [
         "",
         "## What faster detection costs",

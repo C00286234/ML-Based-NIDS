@@ -28,6 +28,7 @@ def test_predict_single_flow(client, flows):
     assert body["prediction"] == flows.iloc[0]["Label"]
     assert len(body["top_features"]) == 5
     assert 0 <= body["confidence"] <= 1
+    assert body["attack_score"] == pytest.approx(1 - body["probabilities"]["BENIGN"], abs=1e-5)
     recent = client.get("/api/recent?limit=1").json()
     assert recent[0]["src_ip"] == "10.0.0.1"
 

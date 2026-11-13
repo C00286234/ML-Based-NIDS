@@ -22,8 +22,9 @@ def _data(args) -> None:
     if args.action == "download":
         print(f"Dataset in {dataset.download()}")
     elif args.action == "build":
-        stats = dataset.build(attempted=args.attempted, merge_web_attacks=not args.keep_web_classes)
-        print(json.dumps({k: v for k, v in stats.items() if k != "class_counts"}, indent=2))
+        stats = dataset.build(attempted=args.attempted, merge_web_attacks=not args.keep_web_classes,
+                              how=args.split)
+        print(json.dumps({k: v for k, v in stats.items() if "class_counts" not in k}, indent=2))
     elif args.action == "sample":
         from nids.demo import make_sample
 
@@ -48,6 +49,13 @@ def _evaluate(args) -> None:
         print(f"{name:<40} accuracy={s['accuracy']:.4f}  macro-F1={s['macro_f1']:.4f}  "
               f"FPR={s['false_positive_rate']:.4%}")
     print(f"Report: {paths.REPORTS_DIR / 'REPORT.md'}")
+
+
+def _experiments(args) -> None:
+    from nids.ml import experiments
+
+    experiments.run(only=args.only)
+    print(f"Report: {experiments.OUT_MD}")
 
 
 def _serve(args) -> None:
@@ -109,6 +117,9 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("action", choices=["download", "build", "sample"])
     d.add_argument("--attempted", choices=["benign", "attack", "drop"], default="benign",
                    help="how to label 'Attempted' attack flows (default: benign, as the dataset authors advise)")
+    d.add_argument("--split", choices=["time", "random"], default="time",
+                   help="time: train on the earlier part of each attack, test on the later part (default). "
+                        "random: stratified random split, easier and less realistic")
     d.add_argument("--keep-web-classes", action="store_true",
                    help="keep Brute Force / XSS / SQL Injection separate instead of one 'Web Attack' class")
     d.set_defaults(func=_data)
@@ -120,6 +131,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("evaluate", help="evaluate the saved model on the held-out test split").set_defaults(
         func=_evaluate)
+
+    x = sub.add_parser("experiments", help="split comparison, ablations and the unseen-attack test (about 50 min)")
+    x.add_argument("--only", choices=["splits", "ablation", "ports", "unseen"])
+    x.set_defaults(func=_experiments)
 
     s = sub.add_parser("serve", help="run the prediction API")
     s.add_argument("--host", default="127.0.0.1")

@@ -177,23 +177,23 @@
   "on_dataset_features": {
     "flows": 52327,
     "attack_flows": 29243,
-    "accuracy": 0.9842910925526019,
+    "accuracy": 0.9841764289945917,
     "detection_rate": 0.9999658037821016,
-    "false_positive_rate": 0.0006498007277768151
+    "false_positive_rate": 0.0007364408248137238
   },
   "on_our_features": {
     "flows": 52327,
     "attack_flows": 29243,
-    "accuracy": 0.9842910925526019,
+    "accuracy": 0.9841764289945917,
     "detection_rate": 0.9999658037821016,
-    "false_positive_rate": 0.0006498007277768151
+    "false_positive_rate": 0.0007364408248137238
   },
   "by_class": {
     "BENIGN": {
       "flows": 23084,
       "same_prediction": 1.0,
-      "correct_on_dataset_features": 0.9993501992722232,
-      "correct_on_our_features": 0.9993501992722232
+      "correct_on_dataset_features": 0.9992635591751863,
+      "correct_on_our_features": 0.9992635591751863
     },
     "Botnet": {
       "flows": 23,
@@ -210,8 +210,8 @@
     "DoS GoldenEye": {
       "flows": 1799,
       "same_prediction": 1.0,
-      "correct_on_dataset_features": 0.9994441356309061,
-      "correct_on_our_features": 0.9994441356309061
+      "correct_on_dataset_features": 1.0,
+      "correct_on_our_features": 1.0
     },
     "DoS Hulk": {
       "flows": 15378,
@@ -234,8 +234,8 @@
     "Infiltration - Portscan": {
       "flows": 955,
       "same_prediction": 1.0,
-      "correct_on_dataset_features": 0.15706806282722513,
-      "correct_on_our_features": 0.15706806282722513
+      "correct_on_dataset_features": 0.15287958115183245,
+      "correct_on_our_features": 0.15287958115183245
     },
     "Portscan": {
       "flows": 104,
@@ -246,8 +246,8 @@
     "Web Attack": {
       "flows": 3,
       "same_prediction": 1.0,
-      "correct_on_dataset_features": 1.0,
-      "correct_on_our_features": 1.0
+      "correct_on_dataset_features": 0.6666666666666666,
+      "correct_on_our_features": 0.6666666666666666
     }
   },
   "tolerance": {
@@ -260,36 +260,36 @@
       "close_grace": 5,
       "flows": 52761,
       "attack_flows": 29403,
-      "accuracy": 0.9827713652129414,
-      "detection_rate": 0.9970071081182192,
-      "false_positive_rate": 0.0006421782686873876
+      "accuracy": 0.9826386914577055,
+      "detection_rate": 0.9970411182532395,
+      "false_positive_rate": 0.000727802037845706
     },
     {
       "idle_timeout": 30,
       "close_grace": 2,
       "flows": 53755,
       "attack_flows": 29612,
-      "accuracy": 0.980485536229188,
-      "detection_rate": 0.9952384168580305,
-      "false_positive_rate": 0.0006627179720830054
+      "accuracy": 0.981341270579481,
+      "detection_rate": 0.995272186951236,
+      "false_positive_rate": 0.0008283974651037568
     },
     {
       "idle_timeout": 15,
       "close_grace": 1,
       "flows": 53926,
       "attack_flows": 29650,
-      "accuracy": 0.9808070318584727,
+      "accuracy": 0.9822163705819086,
       "detection_rate": 0.9957504215851603,
-      "false_positive_rate": 0.0007002801120448179
+      "false_positive_rate": 0.0007826660075795024
     },
     {
       "idle_timeout": 5,
       "close_grace": 1,
       "flows": 66653,
       "attack_flows": 31222,
-      "accuracy": 0.940287758990593,
-      "detection_rate": 0.9430850041637308,
-      "false_positive_rate": 0.001213626485281251
+      "accuracy": 0.9394625898309154,
+      "detection_rate": 0.9420600858369099,
+      "false_positive_rate": 0.002060342637803054
     }
   ]
 }

@@ -25,6 +25,8 @@ log = logging.getLogger(__name__)
 DATASET_URL = "https://intrusion-detection.distrinet-research.be/CNS2022/Datasets/CICIDS2017_improved.zip"
 DAY_FILES = ["monday.csv", "tuesday.csv", "wednesday.csv", "thursday.csv", "friday.csv"]
 SPLITS = ("train", "val", "test")
+# Kept next to the features for splitting by time and for analysis. Never model inputs.
+META_COLUMNS = ["Timestamp", "Day", "Src IP", "Dst IP", "Attempted"]
 
 
 def download(dest: Path = paths.RAW_DIR, url: str = DATASET_URL) -> Path:
@@ -50,22 +52,26 @@ def download(dest: Path = paths.RAW_DIR, url: str = DATASET_URL) -> Path:
 
 
 def load_raw(raw_dir: Path = paths.RAW_DIR) -> pd.DataFrame:
-    """Load the five day files, keeping only the 84 features, the label and the attempted flag."""
-    dtypes = {name: "float32" for name in FEATURE_NAMES_84}
+    """Load the five day files: the 84 features, the label, the attempted flag and META_COLUMNS."""
+    dtypes = {name: "float32" for name in FEATURE_NAMES_84} | {"Src IP": "category", "Dst IP": "category"}
     frames = []
     for name in DAY_FILES:
         path = raw_dir / name
         if not path.exists():
             raise FileNotFoundError(f"{path} not found. Run `nids data download` first.")
         log.info("Loading %s", name)
-        frames.append(
-            pd.read_csv(
-                path,
-                usecols=FEATURE_NAMES_84 + [LABEL_COLUMN, "Attempted Category"],
-                dtype=dtypes,
-            )
+        day = pd.read_csv(
+            path,
+            usecols=FEATURE_NAMES_84 + [LABEL_COLUMN, "Attempted Category", "Timestamp", "Src IP", "Dst IP"],
+            dtype=dtypes,
+            parse_dates=["Timestamp"],
         )
-    return pd.concat(frames, ignore_index=True)
+        day["Day"] = name.removesuffix(".csv")
+        frames.append(day)
+    df = pd.concat(frames, ignore_index=True)
+    for col in ("Day", "Src IP", "Dst IP"):
+        df[col] = df[col].astype("category")
+    return df
 
 
 def clean(
@@ -95,10 +101,17 @@ def clean(
         df = df[~is_attempted]
     else:
         raise ValueError(f"attempted must be benign, attack or drop, not {attempted!r}")
-    df = df.drop(columns=["Attempted Category"])
+    # Kept as a flag so results can be broken down by it later.
+    df = df.assign(Attempted=is_attempted.reindex(df.index)).drop(columns=["Attempted Category"])
     if merge_web_attacks:
         is_web = df[LABEL_COLUMN].str.startswith("Web Attack")
         df.loc[is_web, LABEL_COLUMN] = "Web Attack"
+
+    # "Protocol 0" rows are ARP frames that CICFlowMeter misread as IP. They are not
+    # flows, and the live engine never produces them.
+    not_ip = df["Protocol"] == 0
+    stats["non_ip_rows_removed"] = int(not_ip.sum())
+    df = df[~not_ip].copy()
 
     # Header lengths are occasionally negative in CICFlowMeter output (an overflow bug).
     for col in ("Fwd Header Length", "Bwd Header Length"):
@@ -108,8 +121,11 @@ def clean(
     df[FEATURE_NAMES_84] = feats.where(np.isfinite(feats), np.nan)
 
     # Exact duplicates inflate scores: the same row ends up in train and test.
+    # "Duplicate" means same features and label; the earliest occurrence is kept.
     before = len(df)
-    df = df.drop_duplicates()
+    if "Timestamp" in df.columns:
+        df = df.sort_values("Timestamp", kind="stable")
+    df = df.drop_duplicates(subset=FEATURE_NAMES_84 + [LABEL_COLUMN])
     stats["duplicate_rows_removed"] = before - len(df)
 
     # Identical features with different labels cannot be learned; drop them all.
@@ -127,15 +143,39 @@ def clean(
     return df.reset_index(drop=True), stats
 
 
-def split(df: pd.DataFrame, val_size: float = 0.15, test_size: float = 0.15, seed: int = 42) -> dict:
-    """Stratified train / validation / test split."""
-    train, rest = train_test_split(
-        df, test_size=val_size + test_size, stratify=df[LABEL_COLUMN], random_state=seed
-    )
-    val, test = train_test_split(
-        rest, test_size=test_size / (val_size + test_size), stratify=rest[LABEL_COLUMN], random_state=seed
-    )
-    return {"train": train, "val": val, "test": test}
+def split(
+    df: pd.DataFrame, how: str = "time", val_size: float = 0.15, test_size: float = 0.15, seed: int = 42
+) -> dict:
+    """Train / validation / test split.
+
+    how="time" (default): within each day, each class is split in time order.
+      The model trains on the earliest 70% of an attack and is tested on the
+      last 15%, with the validation flows in between. Neighbouring flows of one
+      attack burst are near-copies of each other, and this keeps them on the
+      same side of the split.
+    how="random": stratified random split. Easier, because every test flow has
+      near-identical neighbours in training. Kept for comparison.
+    """
+    if how == "random":
+        train, rest = train_test_split(
+            df, test_size=val_size + test_size, stratify=df[LABEL_COLUMN], random_state=seed
+        )
+        val, test = train_test_split(
+            rest, test_size=test_size / (val_size + test_size), stratify=rest[LABEL_COLUMN], random_state=seed
+        )
+        return {"train": train, "val": val, "test": test}
+    if how != "time":
+        raise ValueError(f"how must be 'time' or 'random', not {how!r}")
+
+    ordered = df.sort_values("Timestamp", kind="stable")
+    groups = ordered.groupby(["Day", LABEL_COLUMN], observed=True, sort=False)
+    position = groups.cumcount()
+    size = groups[LABEL_COLUMN].transform("size")
+    # Whole flows per part, at least one in validation and test when the class has 3+ flows that day.
+    n_test = np.maximum(np.floor(size * test_size), (size >= 3).astype(int)).astype(int)
+    n_val = np.maximum(np.floor(size * val_size), (size >= 3).astype(int)).astype(int)
+    part = np.where(position >= size - n_test, "test", np.where(position >= size - n_test - n_val, "val", "train"))
+    return {name: ordered[part == name] for name in SPLITS}
 
 
 def build(
@@ -143,16 +183,19 @@ def build(
     out_dir: Path = paths.PROCESSED_DIR,
     attempted: str = "benign",
     merge_web_attacks: bool = True,
+    how: str = "time",
     seed: int = 42,
 ) -> dict:
     """Full pipeline: load raw CSVs, clean, split, and save Parquet files plus a summary."""
     df, stats = clean(load_raw(raw_dir), attempted=attempted, merge_web_attacks=merge_web_attacks)
-    parts = split(df, seed=seed)
+    parts = split(df, how=how, seed=seed)
     out_dir.mkdir(parents=True, exist_ok=True)
+    stats["split_class_counts"] = {}
     for name, part in parts.items():
         part.to_parquet(out_dir / f"{name}.parquet", index=False)
         stats[f"{name}_rows"] = len(part)
-    stats.update({"attempted_policy": attempted, "merge_web_attacks": merge_web_attacks, "seed": seed})
+        stats["split_class_counts"][name] = {k: int(v) for k, v in part[LABEL_COLUMN].value_counts().items()}
+    stats.update({"attempted_policy": attempted, "merge_web_attacks": merge_web_attacks, "split": how, "seed": seed})
     (out_dir / "dataset_summary.json").write_text(json.dumps(stats, indent=2))
     return stats
 

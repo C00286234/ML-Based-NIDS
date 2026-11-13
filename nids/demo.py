@@ -29,7 +29,8 @@ def make_sample(out: Path = SAMPLE_FILE, per_class: int = 40, benign: int = 600,
     for _label, group in test[test[LABEL_COLUMN] != BENIGN].groupby(LABEL_COLUMN):
         parts.append(group.sample(min(per_class, len(group)), random_state=seed))
     out.parent.mkdir(parents=True, exist_ok=True)
-    pd.concat(parts)[FEATURE_NAMES_84 + [LABEL_COLUMN]].to_parquet(out, index=False)
+    keep = [c for c in ("Src IP", "Dst IP") if c in test.columns]
+    pd.concat(parts)[FEATURE_NAMES_84 + [LABEL_COLUMN] + keep].astype({c: str for c in keep}).to_parquet(out, index=False)
     return out
 
 
@@ -42,8 +43,11 @@ def _load_flows() -> pd.DataFrame:
     raise FileNotFoundError("No flows to replay: run `nids data build`, or check data/sample/ exists.")
 
 
-def _fake_flow_id(label: str, rng: random.Random) -> str:
-    """A plausible 5-tuple so the dashboard can show source and destination."""
+def _flow_id(row: pd.Series, label: str, rng: random.Random) -> str:
+    """The flow's 5-tuple, so the dashboard can show source and destination."""
+    if "Src IP" in row.index:  # the dataset's real addresses
+        return (f"{row['Src IP']}-{row['Dst IP']}-{int(row['Src Port'])}-{int(row['Dst Port'])}-"
+                f"{int(row['Protocol'])}")
     src = f"192.168.10.{rng.randint(2, 254)}" if label == BENIGN else f"172.16.0.{rng.randint(1, 20)}"
     dst = f"192.168.10.{rng.choice([3, 5, 8, 9, 14, 15, 50, 51])}"
     return f"{src}-{dst}-{rng.randint(1024, 65535)}-{rng.choice([21, 22, 80, 443, 8080])}-6"
@@ -76,7 +80,7 @@ def run(
                 label, row = BENIGN, benign.sample(1, random_state=rng.randint(0, 2**31)).iloc[0]
             # NaN is not valid JSON: send null and let the model impute it.
             features = {f: (None if pd.isna(row[f]) else float(row[f])) for f in FEATURE_NAMES_84}
-            body = {"features": features, "flow_id": _fake_flow_id(label, rng)}
+            body = {"features": features, "flow_id": _flow_id(row, label, rng)}
             r = session.post(f"{api_url}/predict", json=body, headers=headers, timeout=10)
             if r.status_code == 429:
                 print("Rate limited by the API; waiting 5 s (set NIDS_RATE_LIMIT_ENABLED=false to disable).")

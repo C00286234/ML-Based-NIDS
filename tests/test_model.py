@@ -27,7 +27,7 @@ def test_handles_inf_and_nan(tiny_model, flows):
 
 
 def test_excluded_features_are_never_used(tiny_model):
-    assert "Src Port" not in tiny_model.selected_features
+    assert not {"Src Port", "Dst Port"} & set(tiny_model.selected_features)
     assert set(tiny_model.selected_features) <= set(TRAINING_FEATURES)
 
 

@@ -28,7 +28,8 @@ from nids.features import BENIGN, FEATURE_NAMES_84, TRAINING_FEATURES
 @dataclass
 class Prediction:
     label: str
-    confidence: float
+    confidence: float  # probability of the predicted class
+    attack_score: float  # 1 - P(benign): how likely the flow is any kind of attack
     is_attack: bool
     models_agree: bool
     probabilities: dict[str, float]
@@ -47,13 +48,17 @@ class NIDSModel:
     # ------------------------------------------------------------------ build
 
     @staticmethod
-    def make_preprocess(n_features: int) -> Pipeline:
+    def make_preprocess(n_features: int | None, columns: list[str] | None = None) -> Pipeline:
+        """columns: the features to start from (default: TRAINING_FEATURES).
+        n_features: keep the best this many by ANOVA F-score; None keeps them all."""
+        columns = list(columns or TRAINING_FEATURES)
+        select = "passthrough" if n_features is None else SelectKBest(f_classif, k=min(n_features, len(columns)))
         return Pipeline(
             [
-                ("select_columns", _ColumnSelector(TRAINING_FEATURES)),
+                ("select_columns", _ColumnSelector(columns)),
                 ("impute", SimpleImputer(strategy="median", keep_empty_features=True)),
                 ("drop_constant", VarianceThreshold(0.0)),
-                ("select_k_best", SelectKBest(f_classif, k=min(n_features, len(TRAINING_FEATURES)))),
+                ("select_k_best", select),
             ]
         )
 
@@ -64,7 +69,9 @@ class NIDSModel:
     @property
     def selected_features(self) -> list[str]:
         steps = self.preprocess.named_steps
-        kept = np.array(TRAINING_FEATURES)[steps["drop_constant"].get_support()]
+        kept = np.array(steps["select_columns"].columns)[steps["drop_constant"].get_support()]
+        if steps["select_k_best"] == "passthrough":
+            return kept.tolist()
         return kept[steps["select_k_best"].get_support()].tolist()
 
     # ---------------------------------------------------------------- predict
@@ -92,10 +99,12 @@ class NIDSModel:
         idx = ens.argmax(axis=1)
         labels = self.label_encoder.inverse_transform(idx)
         agree = rf_p.argmax(axis=1) == xgb_p.argmax(axis=1)
+        benign = self.classes.index(BENIGN)
         return [
             Prediction(
                 label=str(labels[i]),
                 confidence=float(ens[i, idx[i]]),
+                attack_score=float(1 - ens[i, benign]),
                 is_attack=labels[i] != BENIGN,
                 models_agree=bool(agree[i]),
                 probabilities={c: round(float(p), 6) for c, p in zip(self.classes, ens[i], strict=True)},

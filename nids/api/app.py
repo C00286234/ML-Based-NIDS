@@ -143,7 +143,9 @@ class FeatureContribution(BaseModel):
 class PredictionResponse(BaseModel):
     prediction: str
     prediction_id: int
-    confidence: float
+    confidence: float = Field(..., description="Probability of the predicted class")
+    attack_score: float = Field(..., description="1 - P(benign). Threshold this to trade detections for false "
+                                                 "alarms; see reports/REPORT.md for measured settings")
     probabilities: dict[str, float]
     top_features: list[FeatureContribution]
     is_attack: bool
@@ -326,7 +328,7 @@ def predict(
         log.warning("ATTACK %s (%.2f) flow=%s", p.label, p.confidence, flow.flow_id)
     return PredictionResponse(
         prediction=p.label, prediction_id=model.classes.index(p.label), confidence=p.confidence,
-        probabilities=p.probabilities, top_features=top, is_attack=p.is_attack, severity=severity,
+        attack_score=p.attack_score, probabilities=p.probabilities, top_features=top, is_attack=p.is_attack, severity=severity,
         model_agreement=p.models_agree, timestamp=now,
     )
 
@@ -346,7 +348,8 @@ def batch_predict(request: Request, batch: BatchRequest, api_key: str | None = D
         _observe(p.label, p.is_attack)
         out.append({
             "flow_index": i, "prediction": p.label, "prediction_id": model.classes.index(p.label),
-            "confidence": p.confidence, "is_attack": p.is_attack, "model_agreement": p.models_agree,
+            "confidence": p.confidence, "attack_score": p.attack_score, "is_attack": p.is_attack,
+            "model_agreement": p.models_agree,
         })
     if METRICS:
         METRICS["latency"].observe(elapsed)
